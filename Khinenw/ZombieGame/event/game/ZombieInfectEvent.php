@@ -8,11 +8,13 @@ use pocketmine\event\plugin\PluginEvent;
 class ZombieInfectEvent extends PluginEvent{
 
 	private $isInitialZombie = false;
+	private $isNoTouchInfection = false;
 	private $playerName = "";
 
-	public function __construct(GameGenius $plugin, $isInitialZombie, $playerName){
+	public function __construct(GameGenius $plugin, $isInitialZombie, $isNoTouchInfection, $playerName){
 		parent::__construct($plugin);
 		$this->isInitialZombie = $isInitialZombie;
+		$this->isNoTouchInfection = $isNoTouchInfection;
 		$this->playerName = $playerName;
 	}
 
@@ -22,6 +24,10 @@ class ZombieInfectEvent extends PluginEvent{
 
 	public function getPlayerName(){
 		return $this->playerName;
+	}
+
+	public function isNoTouchInfection(){
+		return $this->isNoTouchInfection;
 	}
 
 }

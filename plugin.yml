@@ -1,0 +1,21 @@
+#Khinenw's ZombieGame
+name: ZombieGame
+author: Khinenw
+version: "0.0.1 alpha"
+description: "The Genius S1E4 Main Match into PocketMine-MP!"
+main: Khinenw\ZombieGame\GameGenius
+api: [1.12.0]
+
+permissions:
+  zombiegame.spawnpos:
+    description: "The permission for setting spawn position"
+    default: true
+    usage: /setspawnpos
+
+commands:
+  setspawnpos:
+    description: "Set spawnposition for ZombieGame"
+    usage: "/setspawnpos"
+    permission: zombiegame.spawnpos
+
+
