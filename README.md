@@ -10,9 +10,9 @@ The Genius S1E4 Main Match : Zombie Game into PocketMine-MP
 4. You can touch only one time with each player.
 5. After finishing a round, amount of zombies and humans will be notified.
 6. When you touch with someone, the result is
-  Zombie-Zombie : Nothing happens.
-  Zombie-Human : The human becames a zombie.
-  Human-Human : The humans get a score.
+   * Zombie-Zombie : Nothing happens.
+   * Zombie-Human : The human becames a zombie.
+   * Human-Human : The humans get a score.
 7. After finishing the game, if everyone is zombie, the initial zombies will win.
   If there is(are) human(s), the human(s) who has(have) the highest score win(s).
 
