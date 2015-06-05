@@ -1,5 +1,4 @@
-
-WELCOME_MESSAGE: Welcome, %s1!
+WELCOME_MESSAGE: Welcome, %s1 for coming The Genius Game 4th round!
 PLAYER_COUNT: There are %s1 players!
 WAIT_MESSAGE: Please wait for players! (10 players needed)
 SPAWNPOS_SET: Spawnpos has been successfully set!
@@ -7,6 +6,13 @@ UNKNOWN_COMMAND: Unknown Command!
 MUST_INGAME: This command can be used only in-game!
 PLAYER_LEAVE: Player %s1 leaved the game!
 WAS_INITIAL_ZOMBIE: Player %s1 was a initial zombie. New initial zombie has been created!
-NO_TOUCH_INFECTION: Player %s1 has been infected because the player didn't touched any player in a round.
+NO_TOUCH_INFECTION: "Player %s1 has been infected because the player didn't touched any player in a round."
 ARE_INITIAL_ZOMBIE: You are a initial zombie! Attack another to infect!
 ARE_INITIAL_HUMAN: You are a initial human! Avoid zombies!
+POPUP_WAITING_PLAYERS: "Wating for players (%s1/%s2)..."
+POPUP_STATUS_ROUND: Round %s1
+POPUP_STATUS_ROUND_REST: Break Time (Round %s1)
+POPUP_STATUS_PREPARATION: "Preparation in progress..."
+POPUP_STATUS_LEFT: "%s1m %s2s Left"
+ROUND_FINISHED: Round %s1 finished!
+ROUND_FINISHED_COUNT: "Zombie: %s1, Player: %s2"

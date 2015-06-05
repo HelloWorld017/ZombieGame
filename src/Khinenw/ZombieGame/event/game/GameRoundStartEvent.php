@@ -3,9 +3,9 @@
 namespace Khinenw\ZombieGame\event\game;
 
 use Khinenw\ZombieGame\GameGenius;
-use pocketmine\event\plugin\PluginEvent;
+use Khinenw\ZombieGame\event\GeniusGameEvent;
 
-class GameRoundStartEvent extends PluginEvent{
+class GameRoundStartEvent extends GeniusGameEvent{
 
 	private $gameId;
 

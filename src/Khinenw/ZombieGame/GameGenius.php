@@ -3,13 +3,17 @@
 namespace Khinenw\ZombieGame;
 
 use Khinenw\ZombieGame\event\game\GameFinishEvent;
+use Khinenw\ZombieGame\event\game\GameRoundFinishEvent;
 use Khinenw\ZombieGame\event\game\GameRoundStartEvent;
 use Khinenw\ZombieGame\event\game\GameStartEvent;
 use Khinenw\ZombieGame\event\game\ZombieInfectEvent;
+use Khinenw\ZombieGame\task\GameTickTask;
+use Khinenw\ZombieGame\task\SendPopupTask;
 use pocketmine\command\Command;
 use pocketmine\command\CommandSender;
 use pocketmine\entity\Effect;
 use pocketmine\event\entity\EntityDamageByEntityEvent;
+use pocketmine\event\entity\EntityDamageEvent;
 use pocketmine\event\Listener;
 use pocketmine\event\player\PlayerJoinEvent;
 use pocketmine\event\player\PlayerQuitEvent;
@@ -24,23 +28,50 @@ class GameGenius extends PluginBase implements Listener{
 	public $config;
 	public $games = array();
 	public $players = array();
+	public $notInGamePlayerCount = 0;
+
+	public static $NEED_PLAYERS = 10;
 
 	public function onEnable(){
-		$this->config = (new Config($this->getDataFolder()."config.yml", Config::YAML))->getAll();
-		if(isset($this->config["language"])){
-			$this->getLogger()->error("Language Not Found!");
+		$this->getLogger()->info(TextFormat::AQUA."Loading Zombie Game...");
+		
+		if(!file_exists($this->getDataFolder())){
+			$this->getLogger()->error(TextFormat::RED."Data Not Found!");
 			$this->getServer()->getPluginManager()->disablePlugin($this);
 		}
+		
+		$this->config = (new Config($this->getDataFolder()."config.yml", Config::YAML))->getAll();
+		if(!isset($this->config["language"])){
+			$this->getLogger()->error(TextFormat::RED."Language Not Found!");
+			$this->getServer()->getPluginManager()->disablePlugin($this);
+		}
+
+		$this->getLogger()->info(TextFormat::AQUA."Loading Translation Pack : ".$this->config["language"]);
 		$this->translation = (new Config($this->getDataFolder()."translation_".$this->config["language"].".yml", Config::YAML))->getAll();
+		$this->getLogger()->info(TextFormat::AQUA."Done Loading Translation");
 
+		$managerClass = new \ReflectionClass(GameManager::class);
+		$geniusClass = new \ReflectionClass(GameGenius::class);
+
+		$this->getLogger()->info(TextFormat::AQUA."Loading Configuration...");
 		foreach($this->config as $key => $value){
-			$class = new \ReflectionClass("Khinenw/ZombieGame/GameManager");
 
-			if($class->hasProperty($key)){
-				$class->setStaticPropertyValue($key, $value);
+			if($managerClass->hasProperty($key)){
+				$managerClass->setStaticPropertyValue($key, $value);
+				$this->getLogger()->info("Config ".$key." found in GameManager class!");
+			}
+
+			if($geniusClass->hasProperty($key)){
+				$geniusClass->setStaticPropertyValue($key, $value);
+				$this->getLogger()->info("Config ".$key." found in GameGenius class!");
 			}
 		}
+		$this->getLogger()->info(TextFormat::AQUA."Done Loading Configuration.");
+
 		$this->getServer()->getPluginManager()->registerEvents($this, $this);
+		$this->getLogger()->info(TextFormat::AQUA."Zombie Game has been loaded!");
+		$this->getServer()->getScheduler()->scheduleRepeatingTask(new GameTickTask($this), 20);
+		$this->getServer()->getScheduler()->scheduleRepeatingTask(new SendPopupTask($this), 20);
 	}
 
 	public function onCommand(CommandSender $sender, Command $command, $label, array $params){
@@ -96,16 +127,32 @@ class GameGenius extends PluginBase implements Listener{
 			}
 		}
 		$this->playerChange();
+
+		unset($this->players[$event->getPlayer()->getName()]);
 	}
 
 	public function onGameFinish(GameFinishEvent $event){
-		foreach($this->games[$event->getGameId()]->playerData as $playerData){
+		foreach($this->games[$event->getGameId()]->playerData as $playerName=>$playerData){
 			$playerData["player"]->removeEffect(Effect::SPEED);
+			$this->players[$playerName] = "NONE";
 		}
+
+		unset($this->games[$event->getGameId()]);
 	}
 
 	public function onGameRoundStarted(GameRoundStartEvent $event){
 
+	}
+
+	public function onGameRoundFinished(GameRoundFinishEvent $event){
+		$this->notifyForPlayers($event->getGameId(), TextFormat::AQUA.$this->getTranslation("ROUND_FINISHED", $this->games[$event->getGameId()]->roundCount)."\r\n"
+			.$this->getTranslation("ROUND_FINISHED_COUNT", $event->getZombieCount(), $event->getHumanCount()));
+	}
+
+	public function onTick(){
+		foreach($this->games as $game){
+			$game->tick();
+		}
 	}
 
 	public function onZombieInfection(ZombieInfectEvent $event){
@@ -134,7 +181,11 @@ class GameGenius extends PluginBase implements Listener{
 		}
 	}
 
-	public function onPlayerDamage(EntityDamageByEntityEvent $event){
+	public function onPlayerDamageByEntity(EntityDamageEvent $event){
+		if(!($event instanceof EntityDamageByEntityEvent)){
+			return true;
+		}
+
 		if(!(($event->getEntity() instanceof Player) && ($event->getDamager() instanceof Player))){
 			return true;
 		}
@@ -147,6 +198,7 @@ class GameGenius extends PluginBase implements Listener{
 			$this->notifyTipForPlayers($damagerGameId, TextFormat::DARK_PURPLE.$damagerGameId." TOUCHED ".$entityGameId);
 			return false;
 		}
+		return true;
 	}
 
 	public function notifyForPlayers($gameId, $notification){
@@ -161,23 +213,62 @@ class GameGenius extends PluginBase implements Listener{
 		}
 	}
 
+	public function getPopupTextWithPlayerCount($playerName){
+		$popupText = "";
+
+		if($this->players[$playerName] === "NONE"){
+			$popupText = TextFormat::BOLD.TextFormat::GREEN.$this->getTranslation("POPUP_WAITING_PLAYERS", $this->notInGamePlayerCount, GameGenius::$NEED_PLAYERS);
+		}else{
+			$popupText .= TextFormat::GREEN;
+			$playerGame = $this->games[$this->players[$playerName]];
+			switch($this->games[$this->players[$playerName]]->gameStatus){
+				case GameManager::STATUS_INGAME:
+					$popupText .= $this->getTranslation("POPUP_STATUS_ROUND", $playerGame->roundCount);
+					break;
+				case GameManager::STATUS_INGAME_REST:
+					$popupText .= $this->getTranslation("POPUP_STATUS_ROUND_REST", $playerGame->roundCount);
+					break;
+				case GameManager::STATUS_PREPARATION:
+					$popupText .= $this->getTranslation("POPUP_STATUS_PREPARATION", $playerGame->roundCount);
+					break;
+			}
+		}
+
+		return $popupText;
+	}
+
 	public function playerChange(){
-		$online = $this->getServer()->getOnlinePlayers();
-		if(count($online) > 10){
+
+		$this->notInGamePlayerCount = 0;
+		$onlineNotInGamePlayers = array();
+
+		foreach($this->players as $playerName => $playerGameId){
+			if($playerGameId === "NONE"){
+				array_push($onlineNotInGamePlayers, $playerName);
+				$this->notInGamePlayerCount++;
+			}
+		}
+
+		if(count($onlineNotInGamePlayers) >= GameGenius::$NEED_PLAYERS){
 			$gameid = $this->getGameId();
 			$gamers = array();
 
-			for($i = 0; $i < 10; $i++){
-				$this->players[$online[$i]->getName()] = $gameid;
-				$online[$i]->addEffect(Effect::getEffectByName("speed")->setAmplifier(4)->setDuration(30000));
-				array_push($gamers, $this->players);
+			for($i = 0; $i < GameGenius::$NEED_PLAYERS; $i++){
+				$player = $this->getServer()->getPlayerExact($onlineNotInGamePlayers[$i]);
+				$this->players[$onlineNotInGamePlayers[$i]] = $gameid;
+				$player->addEffect(Effect::getEffectByName("speed")->setAmplifier(4)->setDuration(30000));
+				array_push($gamers, $player);
 			}
 
 			$newgame = new GameManager();
 			$newgame->startGame($gamers, $gameid, $this);
 
 			$this->games[$gameid] = $newgame;
+
+			$this->notInGamePlayerCount -= GameGenius::$NEED_PLAYERS;
+
 		}
+
 	}
 
 	public function getGameId(){
@@ -190,12 +281,14 @@ class GameGenius extends PluginBase implements Listener{
 	}
 
 	public function getTranslation($translationKey, ...$args){
+		if(!isset($this->translation[$translationKey])){
+			return "UNDEFINED_TRANSLATION";
+		}
+
 		$translationText = $this->translation[$translationKey];
-		$pattern = '/%s\D/';
-		preg_match($pattern, $translationKey, $matches);
-		foreach($matches as $arg){
-			$argNum = intval(str_replace("%s", "", $arg));
-			$translationText = str_replace($pattern, $args[$argNum], $translationText);
+
+		foreach($args as $key => $value){
+			$translationText = str_replace("%s".($key + 1), $value, $translationText);
 		}
 
 		return $translationText;

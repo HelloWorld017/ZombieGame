@@ -3,9 +3,9 @@
 namespace Khinenw\ZombieGame\event\game;
 
 use Khinenw\ZombieGame\GameGenius;
-use pocketmine\event\plugin\PluginEvent;
+use Khinenw\ZombieGame\event\GeniusGameEvent;
 
-class ZombieInfectEvent extends PluginEvent{
+class ZombieInfectEvent extends GeniusGameEvent{
 
 	private $isInitialZombie = false;
 	private $isNoTouchInfection = false;

@@ -32,7 +32,7 @@ class GameManager {
 	const STATUS_PREPARATION = 0;
 	const STATUS_INGAME = 1;
 	const STATUS_INGAME_REST = 2;
-
+	const STATUS_FINISHED = 3;
 
 	const RETURNTYPE_MEDICINE_NOT_ZOMBIE_SUCCEED = 0;
 	const RETURNTYPE_MEDICINE_OVER_TIME_SUCCEED = 1;
@@ -204,7 +204,7 @@ class GameManager {
 				}
 			}
 
-			$this->plugin->getServer()->getPluginManager()->callEvent(new GameFinishEvent($this->plugin, $this->gameId, $winnerName));
+			$this->plugin->getServer()->getPluginManager()->callEvent(new GameFinishEvent($this->plugin, $this->gameId, $winnerName, GameManager::ZOMBIE));
 		}else{
 			$winnerName = array();
 
@@ -221,8 +221,10 @@ class GameManager {
 				}
 			}
 
-			$this->plugin->getServer()->getPluginManager()->callEvent(new GameFinishEvent($this->plugin, $this->gameId, $winnerName));
+			$this->plugin->getServer()->getPluginManager()->callEvent(new GameFinishEvent($this->plugin, $this->gameId, $winnerName, GameManager::HUMAN));
 		}
+
+		$this->gameStatus = GameManager::STATUS_FINISHED;
 
 	}
 
