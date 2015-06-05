@@ -4,9 +4,13 @@ namespace Khinenw\ZombieGame;
 
 use Khinenw\ZombieGame\event\game\GameFinishEvent;
 use Khinenw\ZombieGame\event\game\GameRoundStartEvent;
+use Khinenw\ZombieGame\event\game\GameStartEvent;
+use Khinenw\ZombieGame\event\game\ZombieInfectEvent;
 use pocketmine\command\Command;
 use pocketmine\command\CommandSender;
 use pocketmine\entity\Effect;
+use pocketmine\event\entity\EntityDamageByEntityEvent;
+use pocketmine\event\Listener;
 use pocketmine\event\player\PlayerJoinEvent;
 use pocketmine\event\player\PlayerQuitEvent;
 use pocketmine\Player;
@@ -14,7 +18,7 @@ use pocketmine\plugin\PluginBase;
 use pocketmine\utils\Config;
 use pocketmine\utils\TextFormat;
 
-class GameGenius extends PluginBase{
+class GameGenius extends PluginBase implements Listener{
 
 	public $translation;
 	public $config;
@@ -27,7 +31,7 @@ class GameGenius extends PluginBase{
 			$this->getLogger()->error("Language Not Found!");
 			$this->getServer()->getPluginManager()->disablePlugin($this);
 		}
-		$this->translation = (new Config($this->getDataFolder()."translation".$this->config["language"].".yml", Config::YAML))->getAll();
+		$this->translation = (new Config($this->getDataFolder()."translation_".$this->config["language"].".yml", Config::YAML))->getAll();
 
 		foreach($this->config as $key => $value){
 			$class = new \ReflectionClass("Khinenw/ZombieGame/GameManager");
@@ -36,6 +40,7 @@ class GameGenius extends PluginBase{
 				$class->setStaticPropertyValue($key, $value);
 			}
 		}
+		$this->getServer()->getPluginManager()->registerEvents($this, $this);
 	}
 
 	public function onCommand(CommandSender $sender, Command $command, $label, array $params){
@@ -81,7 +86,14 @@ class GameGenius extends PluginBase{
 
 		if($playerGameId !== "NONE"){
 			$event->getPlayer()->removeEffect(Effect::SPEED);
+			$playerData = $this->games[$playerGameId]->playerData[$event->getPlayer()->getName()];
 			$this->games[$playerGameId]->disconnectedFromServer($event->getPlayer()->getName());
+
+			$this->notifyForPlayers($playerGameId, TextFormat::DARK_RED.$this->getTranslation("PLAYER_LEAVE", $event->getPlayer()->getName()));
+
+			if(isset($playerData["initial_zombie"]) && $playerData["initial_zombie"]){
+				$this->notifyForPlayers($playerGameId, TextFormat::AQUA.$this->getTranslation("WAS_INITIAL_ZOMBIE", $event->getPlayer()->getName()));
+			}
 		}
 		$this->playerChange();
 	}
@@ -94,6 +106,59 @@ class GameGenius extends PluginBase{
 
 	public function onGameRoundStarted(GameRoundStartEvent $event){
 
+	}
+
+	public function onZombieInfection(ZombieInfectEvent $event){
+		if($event->isNoTouchInfection()){
+			$this->notifyForPlayers(TextFormat::BLUE.$this->players[$event->getPlayerName()], $this->getTranslation("NO_TOUCH_INFECTION", $event->getPlayerName()));
+		}
+
+		if($event->isInitialZombie()){
+			$this->getServer()->getPlayerExact($event->getPlayerName())->sendMessage(TextFormat::AQUA.$this->getTranslation("ARE_INITIAL_ZOMBIE"));
+		}
+	}
+
+	public function onGameStart(GameStartEvent $event){
+		if(!isset($this->config["spawnpos"])){
+			$this->getLogger()->error("Please enter spawnpos first!");
+			$this->getServer()->getPluginManager()->disablePlugin($this);
+		}else{
+			foreach($event->getGameId()->playerData as $playerName => $playerData){
+				$playerData["player"]->setX($this->config["spawnpos"]["x"]);
+				$playerData["player"]->setY($this->config["spawnpos"]["y"]);
+				$playerData["player"]->setZ($this->config["spawnpos"]["z"]);
+				if($playerData["type"] === GameManager::HUMAN){
+					$playerData["player"]->sendMessage(TextFormat::AQUA.$this->getTranslation("ARE_INITIAL_HUMAN"));
+				}
+			}
+		}
+	}
+
+	public function onPlayerDamage(EntityDamageByEntityEvent $event){
+		if(!(($event->getEntity() instanceof Player) && ($event->getDamager() instanceof Player))){
+			return true;
+		}
+
+		$damagerGameId = $this->players[$event->getDamager()->getName()];
+		$entityGameId = $this->players[$event->getEntity()->getName()];
+
+		if(($damagerGameId === $entityGameId) && ($damagerGameId !== "NONE")){
+			$this->games[$damagerGameId]->touch($event->getDamager()->getName(), $event->getEntity()->getName());
+			$this->notifyTipForPlayers($damagerGameId, TextFormat::DARK_PURPLE.$damagerGameId." TOUCHED ".$entityGameId);
+			return false;
+		}
+	}
+
+	public function notifyForPlayers($gameId, $notification){
+		foreach($this->games[$gameId]->playerData as $playerName => $playerData){
+			$playerData["player"]->sendMessage($notification);
+		}
+	}
+
+	public function notifyTipForPlayers($gameId, $notification){
+		foreach($this->games[$gameId]->playerData as $playerName => $playerData){
+			$playerData["player"]->sendTip($notification);
+		}
 	}
 
 	public function playerChange(){

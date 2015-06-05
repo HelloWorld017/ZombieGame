@@ -23,6 +23,7 @@ class GameManager {
 
 	//Setting
 	public static $INITIAL_ZOMBIE_COUNT = 2;
+	public static $ROUND_COUNT = 3;
 	public static $INFECTION_MEDICINE_TERM = 2400;
 	public static $PREPARATION_TERM = 1200;
 	public static $INGAME_REST_TERM = 600;
@@ -31,6 +32,7 @@ class GameManager {
 	const STATUS_PREPARATION = 0;
 	const STATUS_INGAME = 1;
 	const STATUS_INGAME_REST = 2;
+
 
 	const RETURNTYPE_MEDICINE_NOT_ZOMBIE_SUCCEED = 0;
 	const RETURNTYPE_MEDICINE_OVER_TIME_SUCCEED = 1;
@@ -169,7 +171,7 @@ class GameManager {
 						$this->finishGame();
 					}
 
-					if($this->roundCount > 5){
+					if($this->roundCount > GameManager::$ROUND_COUNT){
 						$this->finishGame();
 					}
 					foreach ($this->playerData as $name=>$data) {

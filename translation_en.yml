@@ -1,0 +1,12 @@
+
+WELCOME_MESSAGE: Welcome, %s1!
+PLAYER_COUNT: There are %s1 players!
+WAIT_MESSAGE: Please wait for players! (10 players needed)
+SPAWNPOS_SET: Spawnpos has been successfully set!
+UNKNOWN_COMMAND: Unknown Command!
+MUST_INGAME: This command can be used only in-game!
+PLAYER_LEAVE: Player %s1 leaved the game!
+WAS_INITIAL_ZOMBIE: Player %s1 was a initial zombie. New initial zombie has been created!
+NO_TOUCH_INFECTION: Player %s1 has been infected because the player didn't touched any player in a round.
+ARE_INITIAL_ZOMBIE: You are a initial zombie! Attack another to infect!
+ARE_INITIAL_HUMAN: You are a initial human! Avoid zombies!
