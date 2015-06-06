@@ -2,7 +2,6 @@
 
 namespace Khinenw\ZombieGame;
 
-
 use Khinenw\ZombieGame\event\game\GameFinishEvent;
 use Khinenw\ZombieGame\event\game\GameRoundFinishEvent;
 use Khinenw\ZombieGame\event\game\GameRoundStartEvent;
@@ -10,9 +9,9 @@ use Khinenw\ZombieGame\event\game\GameStartEvent;
 use Khinenw\ZombieGame\event\game\ZombieInfectEvent;
 
 class GameManager {
-	private $innerTick = 0;
-	private $roundTick = 0;
-	private $playerData = array();
+	public $innerTick = 0;
+	public $roundTick = 0;
+	public $playerData = array();
 	private $gameId = "";
 	private $gameStatus = GameManager::STATUS_PREPARATION;
 	private $roundCount = 1;
@@ -44,21 +43,29 @@ class GameManager {
 	const RETURNTYPE_TOUCH_ALREADY_TOUCED_FAILED = 2;
 
 	private function newGame(){
-		$this->plugin->getServer()->getPluginManager()->callEvent(new GameStartEvent($this->plugin, $this->gameId));
-
 		$initialZombieNames = array_rand($this->playerData, GameManager::$INITIAL_ZOMBIE_COUNT);
 
-		foreach($initialZombieNames as $zombie){
-			$this->infectZombie($zombie, true, false);
+		if(is_array($initialZombieNames)){
+			foreach ($initialZombieNames as $zombie) {
+				$this->infectZombie($zombie, true, false);
+			}
+		}else if($initialZombieNames !== null){
+			//when initial zombie is 1
+			$this->infectZombie($initialZombieNames, true, false);
+		}else{
+			$this->plugin->getLogger()->info("Initial Zombie is NULL!");
+			$this->plugin->getServer()->getPluginManager()->disablePlugin($this);
 		}
 		$this->innerTick = 0;
 		$this->roundTick = 0;
 		$this->gameStatus = GameManager::STATUS_PREPARATION;
 		$this->roundCount = 1;
+		$this->plugin->getServer()->getPluginManager()->callEvent(new GameStartEvent($this->plugin, $this->gameId));
 	}
 
 	public function startGame(array $playerList, $gameId, GameGenius &$plugin){
 		$this->gameId = $gameId;
+		$this->playerData = array();
 
 		foreach($playerList as $player){
 			$this->playerData[$player->getName()] = array(
@@ -88,23 +95,27 @@ class GameManager {
 			case GameManager::HUMAN:
 				if($this->isHuman($touchedPlayerName)){
 					$this->playerData[$touchedPlayerName["score"]]++;
-					$this->playerData[$touchingPlayerName["score"]]++;
+					$this->playerData[$touchedPlayerName["score"]]++;
 				}else{
-					$this->infectZombie($touchingPlayerName, true, false);
+					$this->infectZombie($touchedPlayerName, false, false);
 				}
 				break;
 			case GameManager::ZOMBIE:
 				if($this->isHuman($touchedPlayerName)){
-					$this->infectZombie($touchingPlayerName, true, false);
+					$this->infectZombie($touchedPlayerName, false, false);
 				}
 		}
 		array_push($this->playerData[$touchedPlayerName]["touched"], $touchingPlayerName);
-		array_push($this->playerData[$touchingPlayerName]["touched"], $toucherPlayerName);
+		array_push($this->playerData[$touchingPlayerName]["touched"], $touchedPlayerName);
 
 		return GameManager::RETURNTYPE_TOUCH_SUCCEED;
 	}
 
 	public function disconnectedFromServer($disconnectedPlayerName){
+		if(count($this->playerData) === 0){
+			$this->finishGame();
+			return;
+		}
 		$is_initial_zombie = false;
 
 		if(isset($this->playerData[$disconnectedPlayerName]["initial_zombie"])){
@@ -167,14 +178,14 @@ class GameManager {
 
 					$this->plugin->getServer()->getPluginManager()->callEvent(new GameRoundFinishEvent($this->plugin, $this->gameId, $zombieCount, $humanCount));
 
-					if($zombieCount >= 10){
+					if($zombieCount >= GameGenius::$NEED_PLAYERS){
 						$this->finishGame();
 					}
 
 					if($this->roundCount > GameManager::$ROUND_COUNT){
 						$this->finishGame();
 					}
-					foreach ($this->playerData as $name=>$data) {
+					foreach ($this->playerData as $name => $data) {
 						if(count($data["touched"]) <= 0){
 							$this->infectZombie($name, false, true);
 						}
@@ -204,7 +215,7 @@ class GameManager {
 				}
 			}
 
-			$this->plugin->getServer()->getPluginManager()->callEvent(new GameFinishEvent($this->plugin, $this->gameId, $winnerName, GameManager::ZOMBIE));
+			$this->plugin->getServer()->getPluginManager()->callEvent(new GameFinishEvent($this->plugin, $this->gameId, $winnerName, GameManager::ZOMBIE, 0));
 		}else{
 			$winnerName = array();
 
@@ -221,7 +232,7 @@ class GameManager {
 				}
 			}
 
-			$this->plugin->getServer()->getPluginManager()->callEvent(new GameFinishEvent($this->plugin, $this->gameId, $winnerName, GameManager::HUMAN));
+			$this->plugin->getServer()->getPluginManager()->callEvent(new GameFinishEvent($this->plugin, $this->gameId, $winnerName, GameManager::HUMAN, $highestScore));
 		}
 
 		$this->gameStatus = GameManager::STATUS_FINISHED;
@@ -240,5 +251,13 @@ class GameManager {
 			return false;
 		}
 		return true;
+	}
+
+	public function getRoundCount(){
+		return $this->roundCount;
+	}
+
+	public function getGameStatus(){
+		return $this->gameStatus;
 	}
 }

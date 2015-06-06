@@ -3,13 +3,14 @@
 namespace Khinenw\ZombieGame\event\game;
 
 use Khinenw\ZombieGame\GameGenius;
-use Khinenw\ZombieGame\event\GeniusGameEvent;
+use pocketmine\event\plugin\PluginEvent;
 
-class ZombieInfectEvent extends GeniusGameEvent{
+class ZombieInfectEvent extends PluginEvent{
 
 	private $isInitialZombie = false;
 	private $isNoTouchInfection = false;
 	private $playerName = "";
+	public static $handlerList;
 
 	public function __construct(GameGenius $plugin, $isInitialZombie, $isNoTouchInfection, $playerName){
 		parent::__construct($plugin);

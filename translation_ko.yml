@@ -1,0 +1,38 @@
+WELCOME_MESSAGE: 더 지니어스 4회전 메인매치에 오신 여러분을 환영합니다.
+PLAYER_COUNT: 이제 %s1명의 플레이어가 살아남았습니다.
+WAIT_MESSAGE: 플레이어를 기다리는중 (%s1명 필요)
+SPAWNPOS_SET: 스폰지점이 설정되었습니다!
+UNKNOWN_COMMAND: 모르는 명령어입니다. (/help를 통해 명령어들을 확인 가능합니다)
+MUST_INGAME: 이 명령어는 게임내에서만 실행 가능합니다.
+PLAYER_LEAVE: "%s1씨가 탈락하셨습니다."
+WAS_INITIAL_ZOMBIE: 플레이어 %s1은 최초좀비였습니다. 새 최초좀비가 뽑혔습니다.
+NO_TOUCH_INFECTION: "플레이어 %s1는 한 라운드에 한번도 터치를 안하셨기 때문에 감염되었습니다!"
+ARE_INITIAL_ZOMBIE: 당신은 좀비입니다.
+ARE_INITIAL_HUMAN: 당신은 인간입니다.
+POPUP_WAITING_PLAYERS: "플레이어들을 기다리는 중 (%s1/%s2)..."
+POPUP_STATUS_ROUND: 라운드 %s1
+POPUP_STATUS_ROUND_REST: 휴식 시간 (라운드 %s1)
+POPUP_STATUS_PREPARATION: "준비 중입니다..."
+POPUP_STATUS_LEFT: "%s1분 %s2초 남음"
+ROUND_FINISHED: "%s1 라운드가 끝났습니다!"
+ROUND_FINISHED_COUNT: "좀비: %s1, 인간: %s2"
+ROUND_STARTED: "%s1 라운드가 시작되었습니다!"
+WELCOME_GAME_MESSAGE: 더 지니어스 4회전을 시작하겠습니다.
+GAME_EXPLANATION_1: 여러분은 랜덤을 통해 %s1명은 최초 좀비가 되고 남은 플레이어들은 사람이 됩니다.
+GAME_EXPLANATION_2: 자신이 좀비인지 사람인지는 알고있지만, 다른 사람이 어떤 상태인지는 모르고 시작합니다.
+GAME_EXPLANATION_3: 게임은 %s1 라운드로 진행되며, 한 라운드 동안 한 명 이상의 플레이어와 터치해야합니다.
+GAME_EXPLANATION_4: 만약 아무와도 터치하지 않을 경우, 라운드가 끝남과 동시에 자동으로 좀비로 변합니다.
+GAME_EXPLANATION_5: 각 라운드가 끝나면, 좀비와 사람이 각각 몇 명씩인지만 알려드립니다. 한 게임을 통틀어, 한 번 터치한 사람과는 다시 터치할 수 없습니다.
+GAME_EXPLANATION_P2_1: |
+  터치는 다른 사람을 때리는 것으로 이루어집니다. 만약 누군가와 터치했을 때, 결과는 아래와 같습니다.
+  좀비와 좀비가 터치했을 때, 아무 일도 일어나지 않습니다.
+  사람이 좀비와 터치했을 때, 사람은 좀비로 변합니다.
+  사람과 사람이 터치했을 때, 승점을 하나씩 획득힙니다.
+GAME_EXPLANATION_P2_2: 게임이 끝났을 때, 모두 좀비라면, 좀비가 우승합니다.
+GAME_EXPLANATION_P2_3: 만약 한 명 이상의 인간이 생존할 시, 인간 중에서 가장 승점이 높은 사람이 우승합니다.
+GAME_EXPLANATION_P3_1: 게임이 시작할 때, 한 사람 당 치료제를 하나씩 얻습니다.
+GAME_EXPLANATION_P3_2: 만약 감염 후 %s1초 안에 약을 먹으면, 최초 좀비를 제외하고는 다시 사람이 될 수 있습니다.
+GAME_FINISHED_ZOMBIE: "게임이 끝났습니다. 승자: 좀비인 %s1"
+GAME_FINISHED_HUMAN: "게임이 끝났습니다. 승자: 승점 %s2를 기록한 인간 %s1"
+TOUCH_ALREADY_TOUCHED: "이미 터치하였습니다!"
+PREPARATION_OR_REST: "쉬는시간이거나 준비기간입니다!"

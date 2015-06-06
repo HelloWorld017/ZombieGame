@@ -2,16 +2,18 @@
 
 namespace Khinenw\ZombieGame\event\game;
 
-use Khinenw\ZombieGame\event\GeniusGameEvent;
 use Khinenw\ZombieGame\GameGenius;
+use pocketmine\event\plugin\PluginEvent;
 
-class GameFinishEvent extends GeniusGameEvent{
+class GameFinishEvent extends PluginEvent{
 
 	private $gameId;
 	private $winner;
 	private $winTeam;
+	private $score;
+	public static $handlerList;
 
-	public function __construct(GameGenius $plugin, $gameId, array $winner, $winTeam){
+	public function __construct(GameGenius $plugin, $gameId, array $winner, $winTeam, $score){
 		parent::__construct($plugin);
 		$this->gameId = $gameId;
 		$this->winner = $winner;
@@ -28,5 +30,9 @@ class GameFinishEvent extends GeniusGameEvent{
 
 	public function getWinTeam(){
 		return $this->winTeam;
+	}
+
+	public function getScore(){
+		return $this->score;
 	}
 }

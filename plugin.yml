@@ -7,10 +7,20 @@ main: Khinenw\ZombieGame\GameGenius
 api: 1.12.0
 
 permissions:
+  zombiegame.*:
+    description: "The permission for using zombie game commands"
+    default: true
+    children:
+      zombiegame.spawnpos: true
+      zombiegame.explanation: true
+
   zombiegame.spawnpos:
     description: "The permission for setting spawn position"
     default: op
-    usage: "/setspawnpos"
+
+  zombiegame.explanation:
+    description: "The permission for explain zombie game"
+    default: true
 
 commands:
   setspawnpos:
@@ -18,4 +28,7 @@ commands:
     usage: "/setspawnpos"
     permission: zombiegame.spawnpos
 
-
+  explanation:
+    description: "Explain Zombie Game"
+    usage: "/explanation"
+    permission: zombiegame.explanation

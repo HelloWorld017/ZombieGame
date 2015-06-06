@@ -3,13 +3,14 @@
 namespace Khinenw\ZombieGame\event\game;
 
 use Khinenw\ZombieGame\GameGenius;
-use Khinenw\ZombieGame\event\GeniusGameEvent;
+use pocketmine\event\plugin\PluginEvent;
 
-class GameRoundFinishEvent extends GeniusGameEvent{
+class GameRoundFinishEvent extends PluginEvent{
 
 	private $gameId;
 	private $zombieCount;
 	private $humanCount;
+	public static $handlerList;
 
 	public function __construct(GameGenius $plugin, $gameId, $zombieCount, $humanCount){
 		parent::__construct($plugin);
