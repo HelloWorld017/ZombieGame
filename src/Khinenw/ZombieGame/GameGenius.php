@@ -123,17 +123,39 @@ class GameGenius extends PluginBase implements Listener{
 
 				break;
 			case "explanation":
-				$sender->sendMessage(TextFormat::GREEN.$this->getTranslation("GAME_EXPLANATION_1", GameManager::$INITIAL_ZOMBIE_COUNT));
-				$sender->sendMessage(TextFormat::GREEN.$this->getTranslation("GAME_EXPLANATION_2"));
-				$sender->sendMessage(TextFormat::GREEN.$this->getTranslation("GAME_EXPLANATION_3", GameManager::$ROUND_COUNT));
-				$sender->sendMessage(TextFormat::GREEN.$this->getTranslation("GAME_EXPLANATION_4"));
-				$sender->sendMessage(TextFormat::GREEN.$this->getTranslation("GAME_EXPLANATION_5"));
-				$sender->sendMessage(TextFormat::GREEN.$this->getTranslation("GAME_EXPLANATION_P2_1"));
-				$sender->sendMessage(TextFormat::GREEN.$this->getTranslation("GAME_EXPLANATION_P2_2"));
-				$sender->sendMessage(TextFormat::GREEN.$this->getTranslation("GAME_EXPLANATION_P2_3"));
-				$sender->sendMessage(TextFormat::GREEN.$this->getTranslation("GAME_EXPLANATION_P3_1"));
-				$sender->sendMessage(TextFormat::GREEN.$this->getTranslation("GAME_EXPLANATION_P3_2"));
-
+				if(count($params) <= 0){
+					$sender->sendMessage(TextFormat::GREEN."Explanation (1/3)");
+					$sender->sendMessage(TextFormat::GREEN.$this->getTranslation("GAME_EXPLANATION_1", GameManager::$INITIAL_ZOMBIE_COUNT));
+					$sender->sendMessage(TextFormat::GREEN.$this->getTranslation("GAME_EXPLANATION_2"));
+					$sender->sendMessage(TextFormat::GREEN.$this->getTranslation("GAME_EXPLANATION_3", GameManager::$ROUND_COUNT));
+					$sender->sendMessage(TextFormat::GREEN.$this->getTranslation("GAME_EXPLANATION_4"));
+					$sender->sendMessage(TextFormat::GREEN.$this->getTranslation("GAME_EXPLANATION_5"));
+					return true;
+				}
+				switch($params[0]){
+					case "1":
+						$sender->sendMessage(TextFormat::GREEN."Explanation (1/3)");
+						$sender->sendMessage(TextFormat::GREEN.$this->getTranslation("GAME_EXPLANATION_1", GameManager::$INITIAL_ZOMBIE_COUNT));
+						$sender->sendMessage(TextFormat::GREEN.$this->getTranslation("GAME_EXPLANATION_2"));
+						$sender->sendMessage(TextFormat::GREEN.$this->getTranslation("GAME_EXPLANATION_3", GameManager::$ROUND_COUNT));
+						$sender->sendMessage(TextFormat::GREEN.$this->getTranslation("GAME_EXPLANATION_4"));
+						$sender->sendMessage(TextFormat::GREEN.$this->getTranslation("GAME_EXPLANATION_5"));
+						break;
+					case "2":
+						$sender->sendMessage(TextFormat::GREEN."Explanation (2/3)");
+						$sender->sendMessage(TextFormat::GREEN.$this->getTranslation("GAME_EXPLANATION_P2_1"));
+						$sender->sendMessage(TextFormat::GREEN.$this->getTranslation("GAME_EXPLANATION_P2_2"));
+						$sender->sendMessage(TextFormat::GREEN.$this->getTranslation("GAME_EXPLANATION_P2_3"));
+						break;
+					case "3":
+						$sender->sendMessage(TextFormat::GREEN."Explanation (3/3)");
+						$sender->sendMessage(TextFormat::GREEN.$this->getTranslation("GAME_EXPLANATION_P3_1"));
+						$sender->sendMessage(TextFormat::GREEN.$this->getTranslation("GAME_EXPLANATION_P3_2", floor(GameManager::$INFECTION_MEDICINE_TERM/20)));
+						break;
+					default:
+						$sender->sendMessage(TextFormat::RED."/explanation [Page Number]");
+						break;
+				}
 				break;
 			default:
 				$sender->sendMessage(TextFormat::RED.$this->getTranslation("UNKNOWN_COMMAND"));
@@ -182,7 +204,7 @@ class GameGenius extends PluginBase implements Listener{
 		foreach($event->getWinner() as $winner){
 			$winnerText .= ", ".$winner;
 		}
-		//$winnerText = substr($winnerText, 2);
+		$winnerText = substr($winnerText, 2);
 
 		if($event->getWinTeam() === GameManager::ZOMBIE){
 			$translationText = $this->getTranslation("GAME_FINISHED_ZOMBIE", $winnerText);
@@ -220,8 +242,8 @@ class GameGenius extends PluginBase implements Listener{
 	}
 
 	public function onGameRoundFinished(GameRoundFinishEvent $event){
-		$this->notifyForPlayers($event->getGameId(), TextFormat::AQUA.$this->getTranslation("ROUND_FINISHED", $this->games[$event->getGameId()]->getRoundCount())."\n"
-			.$this->getTranslation("ROUND_FINISHED_COUNT", $event->getZombieCount(), $event->getHumanCount()));
+		$this->notifyForPlayers($event->getGameId(), TextFormat::AQUA.$this->getTranslation("ROUND_FINISHED", $this->games[$event->getGameId()]->getRoundCount() - 1)."\n"
+			.$this->getTranslation(TextFormat::GREEN.TextFormat::UNDERLINE."ROUND_FINISHED_COUNT", $event->getZombieCount(), $event->getHumanCount()));
 	}
 
 	public function onTick(){
@@ -246,7 +268,7 @@ class GameGenius extends PluginBase implements Listener{
 
 		if($event->isInitialZombie()){
 			$player = $this->getServer()->getPlayerExact($event->getPlayerName());
-			if($player !== null) $player->sendMessage(TextFormat::AQUA.$this->getTranslation("ARE_INITIAL_ZOMBIE"));
+			if($player !== null) $player->sendMessage(TextFormat::UNDERLINE.TextFormat::LIGHT_PURPLE.$this->getTranslation("ARE_INITIAL_ZOMBIE"));
 		}
 	}
 
@@ -258,7 +280,7 @@ class GameGenius extends PluginBase implements Listener{
 			$vector3 = new Vector3($this->config["spawnpos"]["x"], $this->config["spawnpos"]["y"], $this->config["spawnpos"]["z"]);
 			foreach($this->games[$event->getGameId()]->playerData as $playerName => $playerData){
 				if($playerData["type"] === GameManager::HUMAN){
-					$playerData["player"]->sendMessage(TextFormat::AQUA.$this->getTranslation("ARE_INITIAL_HUMAN"));
+					$playerData["player"]->sendMessage(TextFormat::LIGHT_PURPLE.TextFormat::UNDERLINE.$this->getTranslation("ARE_INITIAL_HUMAN"));
 				}
 				$this->giveItemAndEffect($playerData["player"]);
 				$playerData["player"]->teleport($vector3);
@@ -313,6 +335,9 @@ class GameGenius extends PluginBase implements Listener{
 					$event->getDamager()->getLevel()->addSound(new DoorSound($event->getDamager()->getLocation()));
 					for($i = 0; $i < 30; $i++){
 						$event->getDamager()->getLevel()->addParticle(new HeartParticle($event->getDamager()->getLocation()->add(mt_rand(-1, 1), mt_rand(-1, 1), mt_rand(-1, 1))));
+					}
+					for($i = 0; $i < 30; $i++){
+						$event->getDamager()->getLevel()->addParticle(new HeartParticle($event->getEntity()->getLocation()->add(mt_rand(-1, 1), mt_rand(-1, 1), mt_rand(-1, 1))));
 					}
 					break;
 			}
@@ -412,11 +437,12 @@ class GameGenius extends PluginBase implements Listener{
 			$newgame = new GameManager();
 
 			$this->games[$gameid] = $newgame;
-			$newgame->startGame($gamers, $gameid, $this);
 
 			foreach($gamers as $gamePlayer){
 				$gamePlayer->sendMessage(TextFormat::AQUA.$this->getTranslation("WELCOME_GAME_MESSAGE"));
 			}
+
+			$newgame->startGame($gamers, $gameid, $this);
 			$this->notInGamePlayerCount -= GameGenius::$NEED_PLAYERS;
 		}
 

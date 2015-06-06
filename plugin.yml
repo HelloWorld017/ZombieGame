@@ -30,5 +30,5 @@ commands:
 
   explanation:
     description: "Explain Zombie Game"
-    usage: "/explanation"
+    usage: "/explanation [page number]"
     permission: zombiegame.explanation

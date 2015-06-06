@@ -18,6 +18,7 @@ class GameFinishEvent extends PluginEvent{
 		$this->gameId = $gameId;
 		$this->winner = $winner;
 		$this->winTeam = $winTeam;
+		$this->score = $score;
 	}
 
 	public function getGameId(){
