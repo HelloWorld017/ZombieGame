@@ -19,6 +19,8 @@ use pocketmine\event\player\PlayerItemConsumeEvent;
 use pocketmine\event\player\PlayerJoinEvent;
 use pocketmine\event\player\PlayerQuitEvent;
 use pocketmine\item\Item;
+use pocketmine\level\particle\HeartParticle;
+use pocketmine\level\sound\DoorSound;
 use pocketmine\math\Vector3;
 use pocketmine\Player;
 use pocketmine\plugin\PluginBase;
@@ -42,9 +44,29 @@ class GameGenius extends PluginBase implements Listener{
 			$this->getLogger()->error(TextFormat::RED."Data Not Found!");
 			$this->getServer()->getPluginManager()->disablePlugin($this);
 		}
+
+		if(!file_exists($this->getDataFolder()."config.yml")){
+			(new Config($this->getDataFolder()."config.yml", Config::YAML, yaml_parse(stream_get_contents($this->getResource("config.yml")))))->save();
+			$this->getLogger()->info(TextFormat::YELLOW."Extracted config.yml!");
+		}
+
+		if(!file_exists($this->getDataFolder()."translation_en.yml")){
+			(new Config($this->getDataFolder()."translation_en.yml", Config::YAML, yaml_parse(stream_get_contents($this->getResource("translation_en.yml")))))->save();
+			$this->getLogger()->info(TextFormat::YELLOW."Extracted translation_en.yml!");
+		}
+
+		if(!file_exists($this->getDataFolder()."translation_ko.yml")){
+			(new Config($this->getDataFolder()."translation_ko.yml", Config::YAML, yaml_parse(stream_get_contents($this->getResource("translation_ko.yml")))))->save();
+			$this->getLogger()->info(TextFormat::YELLOW."Extracted translation_ko.yml!");
+		}
 		
 		$this->config = (new Config($this->getDataFolder()."config.yml", Config::YAML))->getAll();
 		if(!isset($this->config["language"])){
+			$this->getLogger()->error(TextFormat::RED."Language Not Found!");
+			$this->getServer()->getPluginManager()->disablePlugin($this);
+		}
+
+		if(!file_exists($this->getDataFolder()."translation_".$this->config["language"].".yml")){
 			$this->getLogger()->error(TextFormat::RED."Language Not Found!");
 			$this->getServer()->getPluginManager()->disablePlugin($this);
 		}
@@ -160,7 +182,7 @@ class GameGenius extends PluginBase implements Listener{
 		foreach($event->getWinner() as $winner){
 			$winnerText .= ", ".$winner;
 		}
-		$winnerText = substr($winnerText, 2);
+		//$winnerText = substr($winnerText, 2);
 
 		if($event->getWinTeam() === GameManager::ZOMBIE){
 			$translationText = $this->getTranslation("GAME_FINISHED_ZOMBIE", $winnerText);
@@ -170,8 +192,8 @@ class GameGenius extends PluginBase implements Listener{
 
 		foreach($this->games[$event->getGameId()]->playerData as $playerName=>$playerData){
 			$this->stripItemAndEffect($playerData["player"]);
-			$this->players[$playerName] = "NONE";
 			$playerData["player"]->sendMessage(TextFormat::AQUA.$translationText);
+			$this->players[$playerName] = "NONE";
 		}
 
 		unset($this->games[$event->getGameId()]);
@@ -180,13 +202,17 @@ class GameGenius extends PluginBase implements Listener{
 	}
 
 	public function stripItemAndEffect(Player $player){
-		$player->getInventory()->removeItem(new Item(Item::MUSHROOM_STEW, 0, 1, "Medicine"));
+		$player->getInventory()->removeItem(new Item(Item::MUSHROOM_STEW, 0, 1));
+		$player->getInventory()->removeItem(new Item(Item::BOWL, 0, 1));
 		$player->removeEffect(Effect::SPEED);
+		$player->removeEffect(Effect::JUMP);
 	}
 
 	public function giveItemAndEffect(Player $player){
-		$player->getInventory()->addItem(new Item(Item::MUSHROOM_STEW, 0, 1, "Medicine"));
-		$player->addEffect(Effect::getEffectByName("speed")->setAmplifier(4)->setDuration(30000));
+		$player->setGamemode(0);
+		$player->getInventory()->addItem(new Item(Item::MUSHROOM_STEW, 0, 1));
+		$player->addEffect(Effect::getEffect(Effect::SPEED)->setAmplifier(3)->setDuration(30000));
+		$player->addEffect(Effect::getEffect(Effect::JUMP)->setAmplifier(3)->setDuration(30000));
 	}
 
 	public function onGameRoundStarted(GameRoundStartEvent $event){
@@ -194,7 +220,7 @@ class GameGenius extends PluginBase implements Listener{
 	}
 
 	public function onGameRoundFinished(GameRoundFinishEvent $event){
-		$this->notifyForPlayers($event->getGameId(), TextFormat::AQUA.$this->getTranslation("ROUND_FINISHED", $this->games[$event->getGameId()]->getRoundCount())."\r\n"
+		$this->notifyForPlayers($event->getGameId(), TextFormat::AQUA.$this->getTranslation("ROUND_FINISHED", $this->games[$event->getGameId()]->getRoundCount())."\n"
 			.$this->getTranslation("ROUND_FINISHED_COUNT", $event->getZombieCount(), $event->getHumanCount()));
 	}
 
@@ -219,7 +245,8 @@ class GameGenius extends PluginBase implements Listener{
 		}
 
 		if($event->isInitialZombie()){
-			$this->getServer()->getPlayerExact($event->getPlayerName())->sendMessage(TextFormat::AQUA.$this->getTranslation("ARE_INITIAL_ZOMBIE"));
+			$player = $this->getServer()->getPlayerExact($event->getPlayerName());
+			if($player !== null) $player->sendMessage(TextFormat::AQUA.$this->getTranslation("ARE_INITIAL_ZOMBIE"));
 		}
 	}
 
@@ -230,12 +257,11 @@ class GameGenius extends PluginBase implements Listener{
 		}else{
 			$vector3 = new Vector3($this->config["spawnpos"]["x"], $this->config["spawnpos"]["y"], $this->config["spawnpos"]["z"]);
 			foreach($this->games[$event->getGameId()]->playerData as $playerName => $playerData){
-				$playerData["player"]->teleport($vector3);
-				$playerData["player"]->sendMessage(TextFormat::AQUA.$this->getTranslation("WELCOME_GAME_MESSAGE"));
 				if($playerData["type"] === GameManager::HUMAN){
 					$playerData["player"]->sendMessage(TextFormat::AQUA.$this->getTranslation("ARE_INITIAL_HUMAN"));
 				}
 				$this->giveItemAndEffect($playerData["player"]);
+				$playerData["player"]->teleport($vector3);
 			}
 		}
 	}
@@ -246,21 +272,32 @@ class GameGenius extends PluginBase implements Listener{
 			if($playerGameId === "NONE") return true;
 
 			$this->games[$playerGameId]->useMedicine($event->getPlayer()->getName());
+			$event->getPlayer()->sendMessage(TextFormat::GREEN.$this->getTranslation("MEDICINE_USED"));
 		}
 		return true;
 	}
 
 	public function onPlayerDamageByEntity(EntityDamageEvent $event){
+
+		if(!$event->getEntity() instanceof Player){
+			return true;
+		}
+
+		$entityGameId = $this->players[$event->getEntity()->getName()];
+
+		if($entityGameId !== "NONE"){
+			$event->setCancelled(true);
+		}
+
 		if(!($event instanceof EntityDamageByEntityEvent)){
 			return true;
 		}
 
-		if(!(($event->getEntity() instanceof Player) && ($event->getDamager() instanceof Player))){
+		if(!($event->getDamager() instanceof Player)){
 			return true;
 		}
 
 		$damagerGameId = $this->players[$event->getDamager()->getName()];
-		$entityGameId = $this->players[$event->getEntity()->getName()];
 
 		if(($damagerGameId === $entityGameId) && ($damagerGameId !== "NONE")){
 			$returnVal = $this->games[$damagerGameId]->touch($event->getDamager()->getName(), $event->getEntity()->getName());
@@ -273,21 +310,26 @@ class GameGenius extends PluginBase implements Listener{
 					break;
 				case GameManager::RETURNTYPE_TOUCH_SUCCEED:
 					$this->notifyTipForPlayers($damagerGameId, TextFormat::DARK_PURPLE.$event->getDamager()->getName()." TOUCHED ".$event->getEntity()->getName());
+					$event->getDamager()->getLevel()->addSound(new DoorSound($event->getDamager()->getLocation()));
+					for($i = 0; $i < 30; $i++){
+						$event->getDamager()->getLevel()->addParticle(new HeartParticle($event->getDamager()->getLocation()->add(mt_rand(-1, 1), mt_rand(-1, 1), mt_rand(-1, 1))));
+					}
 					break;
 			}
-			$event->setCancelled(true);
 			return false;
 		}
 		return true;
 	}
 
 	public function notifyForPlayers($gameId, $notification){
+		if($gameId === "NONE") return;
 		foreach($this->games[$gameId]->playerData as $playerName => $playerData){
 			$playerData["player"]->sendMessage($notification);
 		}
 	}
 
 	public function notifyTipForPlayers($gameId, $notification){
+		if($gameId === "NONE") return;
 		foreach($this->games[$gameId]->playerData as $playerName => $playerData){
 			$playerData["player"]->sendTip($notification);
 		}
@@ -301,7 +343,7 @@ class GameGenius extends PluginBase implements Listener{
 		}else{
 			$popupText .= TextFormat::GREEN;
 			$playerGame = $this->games[$this->players[$playerName]];
-			switch($this->games[$this->players[$playerName]]->getGameStatus()){
+			switch($playerGame->getGameStatus()){
 				case GameManager::STATUS_INGAME:
 					$popupText .= $this->getTranslation("POPUP_STATUS_ROUND", $playerGame->getRoundCount());
 					break;
@@ -310,6 +352,34 @@ class GameGenius extends PluginBase implements Listener{
 					break;
 				case GameManager::STATUS_PREPARATION:
 					$popupText .= $this->getTranslation("POPUP_STATUS_PREPARATION", $playerGame->getRoundCount());
+					break;
+			}
+			$popupText .= $this->getTranslation("POPUP_STATUS_LEFT", floor($playerGame->roundTick / 1200), floor($playerGame->roundTick / 20));
+		}
+
+		return $popupText;
+	}
+
+	public function getPopupTextWithGameId($gameId){
+		$popupText = "";
+
+		if($gameId === "NONE"){
+			$popupText = TextFormat::BOLD.TextFormat::GREEN.$this->getTranslation("POPUP_WAITING_PLAYERS", $this->notInGamePlayerCount, GameGenius::$NEED_PLAYERS);
+		}else{
+			$popupText .= TextFormat::GREEN;
+			$playerGame = $this->games[$gameId];
+			switch($this->games[$gameId]->getGameStatus()){
+				case GameManager::STATUS_INGAME:
+					$popupText .= $this->getTranslation("POPUP_STATUS_ROUND", $playerGame->getRoundCount())."\n";
+					$popupText .= $this->getTranslation("POPUP_STATUS_LEFT", floor((GameManager::$ROUND_TERM - $playerGame->roundTick) / 1200), floor(((GameManager::$ROUND_TERM - $playerGame->roundTick) % 1200) / 20));
+					break;
+				case GameManager::STATUS_INGAME_REST:
+					$popupText .= $this->getTranslation("POPUP_STATUS_ROUND_REST", $playerGame->getRoundCount())."\n";
+					$popupText .= $this->getTranslation("POPUP_STATUS_LEFT", floor((GameManager::$INGAME_REST_TERM - $playerGame->roundTick) / 1200), floor(((GameManager::$INGAME_REST_TERM - $playerGame->roundTick) % 1200) / 20));
+					break;
+				case GameManager::STATUS_PREPARATION:
+					$popupText .= $this->getTranslation("POPUP_STATUS_PREPARATION", $playerGame->getRoundCount())."\n";
+					$popupText .= $this->getTranslation("POPUP_STATUS_LEFT", floor((GameManager::$PREPARATION_TERM - $playerGame->roundTick) / 1200), floor(((GameManager::$PREPARATION_TERM - $playerGame->roundTick) % 1200)/ 20));
 					break;
 			}
 		}
@@ -344,8 +414,10 @@ class GameGenius extends PluginBase implements Listener{
 			$this->games[$gameid] = $newgame;
 			$newgame->startGame($gamers, $gameid, $this);
 
+			foreach($gamers as $gamePlayer){
+				$gamePlayer->sendMessage(TextFormat::AQUA.$this->getTranslation("WELCOME_GAME_MESSAGE"));
+			}
 			$this->notInGamePlayerCount -= GameGenius::$NEED_PLAYERS;
-
 		}
 
 	}

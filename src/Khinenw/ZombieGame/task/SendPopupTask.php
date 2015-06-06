@@ -11,12 +11,14 @@ class SendPopupTask extends PluginTask{
 	}
 
 	public function onRun($tick){
+		$popupText = array();
 
 		foreach($this->getOwner()->players as $playerName => $playerGameId){
-			if($playerGameId === "NONE"){
-				$this->getOwner()->getServer()->getPlayerExact($playerName)->sendPopup($this->getOwner()->getPopupTextWithPlayerCount($playerName));
+			if(isset($popupText[$playerGameId])){
+				$this->getOwner()->getServer()->getPlayerExact($playerName)->sendPopup($popupText[$playerGameId]);
 			}else{
-				$this->getOwner()->getServer()->getPlayerExact($playerName)->sendPopup($this->getOwner()->getPopupTextWithPlayerCount($playerName));
+				$popupText[$playerGameId] = $this->getOwner()->getPopupTextWithGameId($playerGameId);
+				$this->getOwner()->getServer()->getPlayerExact($playerName)->sendPopup($popupText[$playerGameId]);
 			}
 		}
 	}

@@ -72,7 +72,8 @@ class GameManager {
 				"type" => GameManager::HUMAN,
 				"player" => $player,
 				"score" => 0,
-				"touched" => array()
+				"touched" => array(),
+				"roundtouch" => 0
 			);
 		}
 
@@ -107,15 +108,19 @@ class GameManager {
 		}
 		array_push($this->playerData[$touchedPlayerName]["touched"], $touchingPlayerName);
 		array_push($this->playerData[$touchingPlayerName]["touched"], $touchedPlayerName);
+		$this->playerData[$touchingPlayerName]["roundtouch"]++;
+		$this->playerData[$touchedPlayerName]["roundtouch"]++;
 
 		return GameManager::RETURNTYPE_TOUCH_SUCCEED;
 	}
 
 	public function disconnectedFromServer($disconnectedPlayerName){
-		if(count($this->playerData) === 0){
+		if(count($this->playerData) <= 1){
+			unset($this->playerData[$disconnectedPlayerName]);
 			$this->finishGame();
 			return;
 		}
+
 		$is_initial_zombie = false;
 
 		if(isset($this->playerData[$disconnectedPlayerName]["initial_zombie"])){
@@ -165,6 +170,15 @@ class GameManager {
 			case GameManager::STATUS_INGAME:
 				if($this->roundTick >= GameManager::$ROUND_TERM){
 					$this->roundCount++;
+
+					foreach ($this->playerData as $name => $data) {
+						if($data["roundtouch"] <= 0){
+							$this->infectZombie($name, false, true);
+						}
+
+						$data["roundtouch"] = 0;
+					}
+
 					$zombieCount = 0;
 					$humanCount = 0;
 
@@ -185,11 +199,6 @@ class GameManager {
 					if($this->roundCount > GameManager::$ROUND_COUNT){
 						$this->finishGame();
 					}
-					foreach ($this->playerData as $name => $data) {
-						if(count($data["touched"]) <= 0){
-							$this->infectZombie($name, false, true);
-						}
-					}
 
 					$this->gameStatus = GameManager::STATUS_INGAME_REST;
 					$this->roundTick = 0;
@@ -199,10 +208,10 @@ class GameManager {
 	}
 
 	private function finishGame(){
-		$isEverybodyZombie = false;
+		$isEverybodyZombie = true;
 		foreach($this->playerData as $data){
-			if($data["type"] === GameManager::ZOMBIE){
-				$isEverybodyZombie = true;
+			if($data["type"] !== GameManager::ZOMBIE){
+				$isEverybodyZombie = false;
 			}
 		}
 
