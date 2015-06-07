@@ -54,6 +54,7 @@ class GameGenius extends PluginBase implements Listener{
 	public $notInGamePlayerCount = 0;
 
 	public static $NEED_PLAYERS = 10;
+	public static $GIVE_JUMP_SPELL = true;
 
 	public function onEnable(){
 		$this->getLogger()->info(TextFormat::AQUA."Loading Zombie Game...");
@@ -196,6 +197,10 @@ class GameGenius extends PluginBase implements Listener{
 	}
 
 	public function onPlayerQuit(PlayerQuitEvent $event){
+		if(!isset($playerGameId[$event->getPlayer()->getName()])){
+			return;
+		}
+
 		$playerGameId = $this->players[$event->getPlayer()->getName()];
 
 		if($playerGameId !== "NONE"){
@@ -245,14 +250,20 @@ class GameGenius extends PluginBase implements Listener{
 		$player->getInventory()->removeItem(new Item(Item::MUSHROOM_STEW, 0, 1));
 		$player->getInventory()->removeItem(new Item(Item::BOWL, 0, 1));
 		$player->removeEffect(Effect::SPEED);
-		$player->removeEffect(Effect::JUMP);
+
+		if(GameGenius::$GIVE_JUMP_SPELL) {
+			$player->removeEffect(Effect::JUMP);
+		}
 	}
 
 	public function giveItemAndEffect(Player $player){
 		$player->setGamemode(0);
 		$player->getInventory()->addItem(new Item(Item::MUSHROOM_STEW, 0, 1));
 		$player->addEffect(Effect::getEffect(Effect::SPEED)->setAmplifier(3)->setDuration(30000));
-		$player->addEffect(Effect::getEffect(Effect::JUMP)->setAmplifier(3)->setDuration(30000));
+
+		if(GameGenius::$GIVE_JUMP_SPELL) {
+			$player->addEffect(Effect::getEffect(Effect::JUMP)->setAmplifier(3)->setDuration(30000));
+		}
 	}
 
 	public function onGameRoundStarted(GameRoundStartEvent $event){
@@ -261,7 +272,7 @@ class GameGenius extends PluginBase implements Listener{
 
 	public function onGameRoundFinished(GameRoundFinishEvent $event){
 		$this->notifyForPlayers($event->getGameId(), TextFormat::AQUA.$this->getTranslation("ROUND_FINISHED", $this->games[$event->getGameId()]->getRoundCount() - 1)."\n"
-			.$this->getTranslation(TextFormat::GREEN.TextFormat::UNDERLINE."ROUND_FINISHED_COUNT", $event->getZombieCount(), $event->getHumanCount()));
+			.TextFormat::GREEN.TextFormat::UNDERLINE.$this->getTranslation("ROUND_FINISHED_COUNT", $event->getZombieCount(), $event->getHumanCount()));
 	}
 
 	public function onTick(){
