@@ -41,8 +41,8 @@ class GameGenius extends PluginBase implements Listener{
 		$this->getLogger()->info(TextFormat::AQUA."Loading Zombie Game...");
 		
 		if(!file_exists($this->getDataFolder())){
-			$this->getLogger()->error(TextFormat::RED."Data Not Found!");
-			$this->getServer()->getPluginManager()->disablePlugin($this);
+			$this->getLogger()->info(TextFormat::YELLOW."Created Data Folder!");
+			mkdir($this->getDataFolder());
 		}
 
 		if(!file_exists($this->getDataFolder()."config.yml")){
