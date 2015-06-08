@@ -197,7 +197,7 @@ class GameGenius extends PluginBase implements Listener{
 	}
 
 	public function onPlayerQuit(PlayerQuitEvent $event){
-		if(!isset($playerGameId[$event->getPlayer()->getName()])){
+		if(!isset($this->players[$event->getPlayer()->getName()])){
 			return;
 		}
 
