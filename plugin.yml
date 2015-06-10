@@ -12,10 +12,15 @@ permissions:
     default: true
     children:
       zombiegame.spawnpos: true
+      zombiegame.resetpos: true
       zombiegame.explanation: true
 
   zombiegame.spawnpos:
     description: "The permission for setting spawn position"
+    default: op
+
+  zombiegame.resetpos:
+    description: "The permission for setting reset position"
     default: op
 
   zombiegame.explanation:
@@ -27,6 +32,11 @@ commands:
     description: "Set spawnposition for ZombieGame"
     usage: "/setspawnpos"
     permission: zombiegame.spawnpos
+
+  setresetpos:
+    description: "Set resetposition for ZombieGame"
+    usage: "/setresetpos"
+    permission: zombiegame.resetpos
 
   explanation:
     description: "Explain Zombie Game"

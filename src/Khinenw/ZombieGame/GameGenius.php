@@ -33,9 +33,11 @@ use pocketmine\entity\Effect;
 use pocketmine\event\entity\EntityDamageByEntityEvent;
 use pocketmine\event\entity\EntityDamageEvent;
 use pocketmine\event\Listener;
+use pocketmine\event\player\PlayerDeathEvent;
 use pocketmine\event\player\PlayerItemConsumeEvent;
 use pocketmine\event\player\PlayerJoinEvent;
 use pocketmine\event\player\PlayerQuitEvent;
+use pocketmine\event\player\PlayerRespawnEvent;
 use pocketmine\item\Item;
 use pocketmine\level\particle\HeartParticle;
 use pocketmine\level\sound\DoorSound;
@@ -55,6 +57,8 @@ class GameGenius extends PluginBase implements Listener{
 
 	public static $NEED_PLAYERS = 10;
 	public static $GIVE_JUMP_SPELL = true;
+	public static $IS_KILL_TOUCH = false;
+	public static $IS_FLUSH = false;
 
 	public function onEnable(){
 		$this->getLogger()->info(TextFormat::AQUA."Loading Zombie Game...");
@@ -176,6 +180,17 @@ class GameGenius extends PluginBase implements Listener{
 						break;
 				}
 				break;
+			case "setresetpos":
+				$this->config["resetpos"] = array(
+					"x" => $sender->getX(),
+					"y" => $sender->getY(),
+					"z" => $sender->getZ());
+
+				$sender->sendMessage(TextFormat::AQUA.$this->getTranslation("RESETPOS_SET"));
+
+				$config = new Config($this->getDataFolder()."config.yml", Config::YAML);
+				$config->set("resetpos", $this->config["resetpos"]);
+				$config->save();
 			default:
 				$sender->sendMessage(TextFormat::RED.$this->getTranslation("UNKNOWN_COMMAND"));
 				break;
@@ -204,6 +219,7 @@ class GameGenius extends PluginBase implements Listener{
 		$playerGameId = $this->players[$event->getPlayer()->getName()];
 
 		if($playerGameId !== "NONE"){
+			$event->getPlayer()->teleport(new Vector3($this->config["resetpos"]["x"], $this->config["resetpos"]["y"], $this->config["resetpos"]["z"]));
 			$this->stripItemAndEffect($event->getPlayer());
 
 			$playerData = $this->games[$playerGameId]->playerData[$event->getPlayer()->getName()];
@@ -235,8 +251,10 @@ class GameGenius extends PluginBase implements Listener{
 			$translationText = $this->getTranslation("GAME_FINISHED_HUMAN", $winnerText, $event->getScore());
 		}
 
+		$resetpos = new Vector3($this->config["resetpos"]["x"], $this->config["resetpos"]["y"], $this->config["resetpos"]["z"]);
 		foreach($this->games[$event->getGameId()]->playerData as $playerName=>$playerData){
 			$this->stripItemAndEffect($playerData["player"]);
+			$playerData["player"]->teleport($resetpos);
 			$playerData["player"]->sendMessage(TextFormat::AQUA.$translationText);
 			$this->players[$playerName] = "NONE";
 		}
@@ -259,6 +277,10 @@ class GameGenius extends PluginBase implements Listener{
 	public function giveItemAndEffect(Player $player){
 		$player->setGamemode(0);
 		$player->getInventory()->addItem(new Item(Item::MUSHROOM_STEW, 0, 1));
+		$this->giveEffect($player);
+	}
+
+	public function giveEffect(Player $player){
 		$player->addEffect(Effect::getEffect(Effect::SPEED)->setAmplifier(3)->setDuration(30000));
 
 		if(GameGenius::$GIVE_JUMP_SPELL) {
@@ -266,13 +288,32 @@ class GameGenius extends PluginBase implements Listener{
 		}
 	}
 
+	public function onPlayerRespawned(PlayerRespawnEvent $event){
+		if(isset($this->players[$event->getPlayer()->getName()]) && $this->players[$event->getPlayer()->getName()] !== "NONE"){
+			$event->getPlayer()->teleport(new Vector3($this->config["spawnpos"]["x"], $this->config["spawnpos"]["y"], $this->config["spawnpos"]["z"]));
+		}
+	}
+
+	public function onPlayerDeath(PlayerDeathEvent $event){
+		if($this->players[$event->getEntity()->getName()] !== "NONE"){
+			$event->setKeepInventory(true);
+		}
+	}
+
 	public function onGameRoundStarted(GameRoundStartEvent $event){
 		$this->notifyForPlayers($event->getGameId(), $this->getTranslation("ROUND_STARTED", $this->games[$event->getGameId()]->getRoundCount()));
+		foreach($this->games[$event->getGameId()]->playerData as $playerName => $playerData){
+			$this->giveEffect($playerData["player"]);
+		}
 	}
 
 	public function onGameRoundFinished(GameRoundFinishEvent $event){
 		$this->notifyForPlayers($event->getGameId(), TextFormat::AQUA.$this->getTranslation("ROUND_FINISHED", $this->games[$event->getGameId()]->getRoundCount() - 1)."\n"
 			.TextFormat::GREEN.TextFormat::UNDERLINE.$this->getTranslation("ROUND_FINISHED_COUNT", $event->getZombieCount(), $event->getHumanCount()));
+		$resetpos = new Vector3($this->config["resetpos"]["x"], $this->config["resetpos"]["y"], $this->config["resetpos"]["z"]);
+		foreach($this->games[$event->getGameId()]->playerData as $playerName => $playerData){
+			$playerData["player"]->teleport($resetpos);
+		}
 	}
 
 	public function onTick(){
@@ -283,7 +324,11 @@ class GameGenius extends PluginBase implements Listener{
 		foreach($this->players as $playerName => $playerGameId){
 			if($playerGameId !== "NONE"){
 				$playerInstance = $this->getServer()->getPlayerExact($playerName);
-				if($playerInstance->getHealth() !== 19){
+				if($playerInstance->getHealth() >= 19){
+					$playerInstance->setHealth(19);
+				}
+
+				if($playerInstance->getHealth() !== 19 && !GameGenius::$IS_KILL_TOUCH){
 					$playerInstance->setHealth(19);
 				}
 			}
@@ -348,31 +393,51 @@ class GameGenius extends PluginBase implements Listener{
 			return true;
 		}
 
-		$damagerGameId = $this->players[$event->getDamager()->getName()];
+		if(!GameGenius::$IS_KILL_TOUCH){
+			$this->touch($event->getDamager(), $event->getEntity());
+		}else{
+			if($entityGameId === $this->players[$event->getDamager()->getName()] && $entityGameId !== "NONE"){
+				if($event->getFinalDamage() >= $event->getEntity()->getHealth()){
+					$returnVal = $this->touch($event->getDamager(), $event->getEntity());
+					if(($returnVal !== GameManager::RETURNTYPE_TOUCH_SUCCEED) && ($returnVal !== false)){
+						$event->setCancelled(true);
+					}else{
+						$event->setCancelled(false);
+					}
+				}
+			}
+		}
 
-		if(($damagerGameId === $entityGameId) && ($damagerGameId !== "NONE")){
-			$returnVal = $this->games[$damagerGameId]->touch($event->getDamager()->getName(), $event->getEntity()->getName());
-			switch($returnVal){
+		return false;
+	}
+
+	public function touch(Player $damager, Player $entity){
+		$damagerGameId = $this->players[$damager->getName()];
+		$entityGameId = $this->players[$entity->getName()];
+
+		if(($damagerGameId === $entityGameId) && ($damagerGameId !== "NONE")) {
+			$returnVal = $this->games[$damagerGameId]->touch($damager->getName(), $entity->getName());
+			switch ($returnVal) {
 				case GameManager::RETURNTYPE_TOUCH_ALREADY_TOUCED_FAILED:
-					$event->getDamager()->sendMessage(TextFormat::RED.$this->getTranslation("TOUCH_ALREADY_TOUCHED"));
+					$damager->sendMessage(TextFormat::RED . $this->getTranslation("TOUCH_ALREADY_TOUCHED"));
 					break;
 				case GameManager::RETURNTYPE_TOUCH_IN_PREPARATION_OR_REST_FAILED:
-					$event->getDamager()->sendMessage(TextFormat::RED.$this->getTranslation("PREPARATION_OR_REST"));
+					$damager->sendMessage(TextFormat::RED . $this->getTranslation("PREPARATION_OR_REST"));
 					break;
 				case GameManager::RETURNTYPE_TOUCH_SUCCEED:
-					$this->notifyTipForPlayers($damagerGameId, TextFormat::DARK_PURPLE.$event->getDamager()->getName()." TOUCHED ".$event->getEntity()->getName());
-					$event->getDamager()->getLevel()->addSound(new DoorSound($event->getDamager()->getLocation()));
-					for($i = 0; $i < 30; $i++){
-						$event->getDamager()->getLevel()->addParticle(new HeartParticle($event->getDamager()->getLocation()->add(mt_rand(-1, 1), mt_rand(-1, 1), mt_rand(-1, 1))));
+					$this->notifyTipForPlayers($damagerGameId, TextFormat::DARK_PURPLE .$this->getTranslation("TOUCH_MESSAGE" ,$damager->getName(), $entity->getName()));
+					$damager->getLevel()->addSound(new DoorSound($damager->getLocation()));
+					for ($i = 0; $i < 30; $i++) {
+						$damager->getLevel()->addParticle(new HeartParticle($damager->getLocation()->add(mt_rand(-1, 1), mt_rand(-1, 1), mt_rand(-1, 1))));
 					}
-					for($i = 0; $i < 30; $i++){
-						$event->getDamager()->getLevel()->addParticle(new HeartParticle($event->getEntity()->getLocation()->add(mt_rand(-1, 1), mt_rand(-1, 1), mt_rand(-1, 1))));
+					for ($i = 0; $i < 30; $i++) {
+						$damager->getLevel()->addParticle(new HeartParticle($entity->getLocation()->add(mt_rand(-1, 1), mt_rand(-1, 1), mt_rand(-1, 1))));
 					}
 					break;
 			}
-			return false;
+			return $returnVal;
 		}
-		return true;
+		return false;
 	}
 
 	public function notifyForPlayers($gameId, $notification){
@@ -457,10 +522,18 @@ class GameGenius extends PluginBase implements Listener{
 			$gameid = $this->getGameId();
 			$gamers = array();
 
-			for($i = 0; $i < GameGenius::$NEED_PLAYERS; $i++){
-				$player = $this->getServer()->getPlayerExact($onlineNotInGamePlayers[$i]);
-				$this->players[$onlineNotInGamePlayers[$i]] = $gameid;
-				array_push($gamers, $player);
+			if(GameGenius::$IS_FLUSH){
+				for ($i = 0; $i < count($onlineNotInGamePlayers); $i++) {
+					$player = $this->getServer()->getPlayerExact($onlineNotInGamePlayers[$i]);
+					$this->players[$onlineNotInGamePlayers[$i]] = $gameid;
+					array_push($gamers, $player);
+				}
+			}else{
+				for ($i = 0; $i < GameGenius::$NEED_PLAYERS; $i++) {
+					$player = $this->getServer()->getPlayerExact($onlineNotInGamePlayers[$i]);
+					$this->players[$onlineNotInGamePlayers[$i]] = $gameid;
+					array_push($gamers, $player);
+				}
 			}
 
 			$newgame = new GameManager();
@@ -472,7 +545,7 @@ class GameGenius extends PluginBase implements Listener{
 			}
 
 			$newgame->startGame($gamers, $gameid, $this);
-			$this->notInGamePlayerCount -= GameGenius::$NEED_PLAYERS;
+			$this->notInGamePlayerCount -= count($gamers);
 		}
 
 	}

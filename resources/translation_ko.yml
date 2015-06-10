@@ -39,4 +39,6 @@ GAME_FINISHED_HUMAN: '게임이 끝났습니다. 승자: 승점 %s2를 기록한
 TOUCH_ALREADY_TOUCHED: 이미 터치하였습니다!
 PREPARATION_OR_REST: 쉬는시간이거나 준비기간입니다!
 MEDICINE_USED: 당신은 치료제를 사용하셨습니다!
+TOUCH_MESSAGE: "%s1씨께서 %s2씨를 터치하셨습니다!"
+RESETPOS_SET: 리셋지점이 설정되었습니다!
 ...

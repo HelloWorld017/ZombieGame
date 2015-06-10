@@ -92,7 +92,8 @@ class GameManager {
 				"player" => $player,
 				"score" => 0,
 				"touched" => array(),
-				"roundtouch" => 0
+				"roundtouch" => 0,
+				"medicine" => false
 			);
 		}
 
@@ -114,8 +115,8 @@ class GameManager {
 		switch($this->playerData[$touchingPlayerName]["type"]){
 			case GameManager::HUMAN:
 				if($this->isHuman($touchedPlayerName)){
-					$this->playerData[$touchedPlayerName["score"]]++;
-					$this->playerData[$touchedPlayerName["score"]]++;
+					$this->playerData[$touchedPlayerName]["score"]++;
+					$this->playerData[$touchedPlayerName]["score"]++;
 				}else{
 					$this->infectZombie($touchingPlayerName, false, false);
 				}
@@ -165,6 +166,7 @@ class GameManager {
 			$this->playerData[$usingPlayerName]["type"] = GameManager::HUMAN;
 			unset($this->playerData[$usingPlayerName]["infection_time"]);
 			unset($this->playerData[$usingPlayerName]["initial_zombie"]);
+			$this->playerData[$usingPlayerName]["medicine"] = true;
 			return GameManager::RETURNTYPE_MEDICINE_SUCCEED;
 		}
 

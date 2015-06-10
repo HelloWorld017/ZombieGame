@@ -45,4 +45,6 @@ GAME_FINISHED_HUMAN: Game Finished. Winner %s1 who is human and scored %s2 point
 TOUCH_ALREADY_TOUCHED: Already Touched!
 PREPARATION_OR_REST: Round not started!
 MEDICINE_USED: You used medicine!
+TOUCH_MESSAGE: "%s1 TOUCHED %s2"
+RESETPOS_SET: Resetpos has been successfully set!
 ...
