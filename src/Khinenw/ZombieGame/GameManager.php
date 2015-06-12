@@ -101,6 +101,20 @@ class GameManager {
 		$this->newGame();
 	}
 
+	public function canTouch($touchingPlayerName, $touchedPlayerName){
+		if($this->gameStatus !== GameManager::STATUS_INGAME){
+			return GameManager::RETURNTYPE_TOUCH_IN_PREPARATION_OR_REST_FAILED;
+		}
+
+		foreach($this->playerData[$touchedPlayerName]["touched"] as $pastToucher){
+			if($pastToucher === $touchingPlayerName){
+				return GameManager::RETURNTYPE_TOUCH_ALREADY_TOUCED_FAILED;
+			}
+		}
+
+		return GameManager::RETURNTYPE_TOUCH_SUCCEED;
+	}
+
 	public function touch($touchingPlayerName, $touchedPlayerName){
 		if($this->gameStatus !== GameManager::STATUS_INGAME){
 			return GameManager::RETURNTYPE_TOUCH_IN_PREPARATION_OR_REST_FAILED;

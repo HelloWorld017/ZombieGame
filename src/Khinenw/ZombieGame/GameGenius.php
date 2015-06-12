@@ -402,12 +402,26 @@ class GameGenius extends PluginBase implements Listener{
 		if(!GameGenius::$IS_KILL_TOUCH){
 			$this->touch($event->getDamager(), $event->getEntity());
 		}else{
-			if($event->getFinalDamage() >= $event->getEntity()->getHealth()){
-				$returnVal = $this->touch($event->getDamager(), $event->getEntity());
-				if(($returnVal !== GameManager::RETURNTYPE_TOUCH_SUCCEED) && ($returnVal !== false)){
-					$event->setCancelled(true);
-				}else{
+			if(($this->players[$event->getDamager()->getName()] === $entityGameId) && ($entityGameId !== "NONE")) {
+				$touchTest = $this->games[$entityGameId]->canTouch($event->getDamager()->getName(), $event->getEntity()->getName());
+				if ($touchTest === GameManager::RETURNTYPE_TOUCH_SUCCEED) {
 					$event->setCancelled(false);
+
+					if ($event->getFinalDamage() >= $event->getEntity()->getHealth()) {
+						$returnVal = $this->touch($event->getDamager(), $event->getEntity());
+						if (($returnVal !== GameManager::RETURNTYPE_TOUCH_SUCCEED) || ($returnVal === false)) {
+							$event->setCancelled(true);
+						}
+					}
+				}else{
+					switch($touchTest){
+						case GameManager::RETURNTYPE_TOUCH_ALREADY_TOUCED_FAILED:
+							$event->getDamager()->sendMessage(TextFormat::RED . $this->getTranslation("TOUCH_ALREADY_TOUCHED"));
+							break;
+						case GameManager::RETURNTYPE_TOUCH_IN_PREPARATION_OR_REST_FAILED:
+							$event->getDamager()->sendMessage(TextFormat::RED . $this->getTranslation("PREPARATION_OR_REST"));
+							break;
+					}
 				}
 			}
 		}
@@ -488,12 +502,12 @@ class GameGenius extends PluginBase implements Listener{
 		$popupText = "";
 
 		if($gameId === "NONE"){
-			$popupText = TextFormat::BOLD.TextFormat::GREEN.$this->getTranslation("POPUP_WAITING_PLAYERS", $this->notInGamePlayerCount, GameGenius::$NEED_PLAYERS);
+			$popupText = TextFormat::BOLD.TextFormat::GREEN.$this->getTranslation("POPUP_WAITING_PLAYERS", $this->notInGamePlayerCount, GameGenius::$NEED_PLAYERS)."\n";
 			if(GameGenius::$IS_FLUSH){
 				$popupText .= $this->getTranslation("POPUP_WAITING_ISFLUSH");
 			}
 		}else{
-			$popupText .= TextFormat::BOLD.TextFormat::GREEN;
+			$popupText .= TextFormat::GREEN;
 			$playerGame = $this->games[$gameId];
 			switch($this->games[$gameId]->getGameStatus()){
 				case GameManager::STATUS_INGAME:
