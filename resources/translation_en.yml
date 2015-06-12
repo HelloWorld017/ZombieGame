@@ -12,6 +12,7 @@ NO_TOUCH_INFECTION: Player %s1 has been infected because the player didn't touch
 ARE_INITIAL_ZOMBIE: You are a initial zombie! Attack another to infect!
 ARE_INITIAL_HUMAN: You are a initial human! Avoid zombies!
 POPUP_WAITING_PLAYERS: Wating for players (%s1/%s2)...
+POPUP_WAITING_ISFLUSH: Or wait for in-game players to start with
 POPUP_STATUS_ROUND: Round %s1
 POPUP_STATUS_ROUND_REST: Break Time (Round %s1)
 POPUP_STATUS_PREPARATION: Preparation in progress...

@@ -191,6 +191,7 @@ class GameGenius extends PluginBase implements Listener{
 				$config = new Config($this->getDataFolder()."config.yml", Config::YAML);
 				$config->set("resetpos", $this->config["resetpos"]);
 				$config->save();
+				break;
 			default:
 				$sender->sendMessage(TextFormat::RED.$this->getTranslation("UNKNOWN_COMMAND"));
 				break;
@@ -265,8 +266,11 @@ class GameGenius extends PluginBase implements Listener{
 	}
 
 	public function stripItemAndEffect(Player $player){
-		$player->getInventory()->removeItem(new Item(Item::MUSHROOM_STEW, 0, 1));
-		$player->getInventory()->removeItem(new Item(Item::BOWL, 0, 1));
+		if($player->getInventory() !== null){
+			$player->getInventory()->removeItem(new Item(Item::MUSHROOM_STEW, 0, 1));
+			$player->getInventory()->removeItem(new Item(Item::BOWL, 0, 1));
+		}
+
 		$player->removeEffect(Effect::SPEED);
 
 		if(GameGenius::$GIVE_JUMP_SPELL) {
@@ -275,7 +279,7 @@ class GameGenius extends PluginBase implements Listener{
 	}
 
 	public function giveItemAndEffect(Player $player){
-		$player->setGamemode(0);
+		$player->setGamemode(2);
 		$player->getInventory()->addItem(new Item(Item::MUSHROOM_STEW, 0, 1));
 		$this->giveEffect($player);
 	}
@@ -310,9 +314,9 @@ class GameGenius extends PluginBase implements Listener{
 	public function onGameRoundFinished(GameRoundFinishEvent $event){
 		$this->notifyForPlayers($event->getGameId(), TextFormat::AQUA.$this->getTranslation("ROUND_FINISHED", $this->games[$event->getGameId()]->getRoundCount() - 1)."\n"
 			.TextFormat::GREEN.TextFormat::UNDERLINE.$this->getTranslation("ROUND_FINISHED_COUNT", $event->getZombieCount(), $event->getHumanCount()));
-		$resetpos = new Vector3($this->config["resetpos"]["x"], $this->config["resetpos"]["y"], $this->config["resetpos"]["z"]);
+		$spawnpos = new Vector3($this->config["spawnpos"]["x"], $this->config["spawnpos"]["y"], $this->config["spawnpos"]["z"]);
 		foreach($this->games[$event->getGameId()]->playerData as $playerName => $playerData){
-			$playerData["player"]->teleport($resetpos);
+			$playerData["player"]->teleport($spawnpos);
 		}
 	}
 
@@ -383,6 +387,8 @@ class GameGenius extends PluginBase implements Listener{
 
 		if($entityGameId !== "NONE"){
 			$event->setCancelled(true);
+		}else{
+			return true;
 		}
 
 		if(!($event instanceof EntityDamageByEntityEvent)){
@@ -396,14 +402,12 @@ class GameGenius extends PluginBase implements Listener{
 		if(!GameGenius::$IS_KILL_TOUCH){
 			$this->touch($event->getDamager(), $event->getEntity());
 		}else{
-			if($entityGameId === $this->players[$event->getDamager()->getName()] && $entityGameId !== "NONE"){
-				if($event->getFinalDamage() >= $event->getEntity()->getHealth()){
-					$returnVal = $this->touch($event->getDamager(), $event->getEntity());
-					if(($returnVal !== GameManager::RETURNTYPE_TOUCH_SUCCEED) && ($returnVal !== false)){
-						$event->setCancelled(true);
-					}else{
-						$event->setCancelled(false);
-					}
+			if($event->getFinalDamage() >= $event->getEntity()->getHealth()){
+				$returnVal = $this->touch($event->getDamager(), $event->getEntity());
+				if(($returnVal !== GameManager::RETURNTYPE_TOUCH_SUCCEED) && ($returnVal !== false)){
+					$event->setCancelled(true);
+				}else{
+					$event->setCancelled(false);
 				}
 			}
 		}
@@ -426,6 +430,7 @@ class GameGenius extends PluginBase implements Listener{
 					break;
 				case GameManager::RETURNTYPE_TOUCH_SUCCEED:
 					$this->notifyTipForPlayers($damagerGameId, TextFormat::DARK_PURPLE .$this->getTranslation("TOUCH_MESSAGE" ,$damager->getName(), $entity->getName()));
+					$this->notifyForPlayers($damagerGameId, TextFormat::DARK_PURPLE .$this->getTranslation("TOUCH_MESSAGE" ,$damager->getName(), $entity->getName()));
 					$damager->getLevel()->addSound(new DoorSound($damager->getLocation()));
 					for ($i = 0; $i < 30; $i++) {
 						$damager->getLevel()->addParticle(new HeartParticle($damager->getLocation()->add(mt_rand(-1, 1), mt_rand(-1, 1), mt_rand(-1, 1))));
@@ -454,7 +459,7 @@ class GameGenius extends PluginBase implements Listener{
 		}
 	}
 
-	public function getPopupTextWithPlayerCount($playerName){
+	/*public function getPopupTextWithPlayerCount($playerName){
 		$popupText = "";
 
 		if($this->players[$playerName] === "NONE"){
@@ -477,15 +482,18 @@ class GameGenius extends PluginBase implements Listener{
 		}
 
 		return $popupText;
-	}
+	}*/
 
 	public function getPopupTextWithGameId($gameId){
 		$popupText = "";
 
 		if($gameId === "NONE"){
 			$popupText = TextFormat::BOLD.TextFormat::GREEN.$this->getTranslation("POPUP_WAITING_PLAYERS", $this->notInGamePlayerCount, GameGenius::$NEED_PLAYERS);
+			if(GameGenius::$IS_FLUSH){
+				$popupText .= $this->getTranslation("POPUP_WAITING_ISFLUSH");
+			}
 		}else{
-			$popupText .= TextFormat::GREEN;
+			$popupText .= TextFormat::BOLD.TextFormat::GREEN;
 			$playerGame = $this->games[$gameId];
 			switch($this->games[$gameId]->getGameStatus()){
 				case GameManager::STATUS_INGAME:

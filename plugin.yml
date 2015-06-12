@@ -1,7 +1,7 @@
 #Khinenw's ZombieGame
 name: ZombieGame
 author: Khinenw
-version: "0.0.2 alpha"
+version: "0.0.3 alpha"
 description: "The Genius S1E4 Main Match into PocketMine-MP!"
 main: Khinenw\ZombieGame\GameGenius
 api: 1.12.0
