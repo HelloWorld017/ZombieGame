@@ -48,4 +48,14 @@ PREPARATION_OR_REST: Round not started!
 MEDICINE_USED: You used medicine!
 TOUCH_MESSAGE: "%s1 TOUCHED %s2"
 RESETPOS_SET: Resetpos has been successfully set!
+DONE_LOADING_TRANSLATION: "Done Loading Translation : %s1"
+LOADING_CONFIG: Loading config...
+FOUND_CONFIG: Config %s1 has been found in class %s2
+DONE_LOADING_CONFIG: Done loading configuration.
+DONE_LOADING_GAME: Zombie Game has been loaded!
+SPAWNPOS_FIRST: Please set spawnpos first!
+RESETPOS_FIRST: Please set resetpos first!
+VERSION_DIFFER: Version may differ from the recent version! Please update!
+RECENT_VERSION: "Your version is up-to-date :)"
+UNDEFINED_TRANSLATION: "Undefined Translation : "
 ...

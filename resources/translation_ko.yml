@@ -42,4 +42,14 @@ PREPARATION_OR_REST: 쉬는시간이거나 준비기간입니다!
 MEDICINE_USED: 당신은 치료제를 사용하셨습니다!
 TOUCH_MESSAGE: "%s1씨께서 %s2씨를 터치하셨습니다!"
 RESETPOS_SET: 리셋지점이 설정되었습니다!
+DONE_LOADING_TRANSLATION: 번역팩 %s1이 로딩되었습니다!
+LOADING_CONFIG: 설정 로딩중...
+FOUND_CONFIG: 설정 %s1이 클래스 %s2에서 발견되었습니다!
+DONE_LOADING_CONFIG: 설정이 로딩되었습니다!
+DONE_LOADING_GAME: 좀비게임이 로딩되었습니다!
+SPAWNPOS_FIRST: 스폰지점을 먼저 설정해주세요!
+RESETPOS_FIRST: 리셋지점을 먼저 설정해주세요!
+VERSION_DIFFER: 최신버젼과 현재버젼이 다릅니다! 업데이트 해주세요!
+RECENT_VERSION: "최신버젼입니다 :)"
+UNDEFINED_TRANSLATION: "존재하지 않는 번역 : "
 ...

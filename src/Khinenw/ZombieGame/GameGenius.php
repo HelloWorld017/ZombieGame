@@ -46,6 +46,7 @@ use pocketmine\Player;
 use pocketmine\plugin\PluginBase;
 use pocketmine\utils\Config;
 use pocketmine\utils\TextFormat;
+use pocketmine\utils\Utils;
 
 class GameGenius extends PluginBase implements Listener{
 
@@ -82,6 +83,11 @@ class GameGenius extends PluginBase implements Listener{
 			(new Config($this->getDataFolder()."translation_ko.yml", Config::YAML, yaml_parse(stream_get_contents($this->getResource("translation_ko.yml")))))->save();
 			$this->getLogger()->info(TextFormat::YELLOW."Extracted translation_ko.yml!");
 		}
+
+		if(!file_exists($this->getDataFolder()."translation_ru.yml")){
+			(new Config($this->getDataFolder()."translation_ru.yml", Config::YAML, yaml_parse(stream_get_contents($this->getResource("translation_ru.yml")))))->save();
+			$this->getLogger()->info(TextFormat::YELLOW."Extracted translation_ru.yml!");
+		}
 		
 		$this->config = (new Config($this->getDataFolder()."config.yml", Config::YAML))->getAll();
 		if(!isset($this->config["language"])){
@@ -96,28 +102,42 @@ class GameGenius extends PluginBase implements Listener{
 
 		$this->getLogger()->info(TextFormat::AQUA."Loading Translation Pack : ".$this->config["language"]);
 		$this->translation = (new Config($this->getDataFolder()."translation_".$this->config["language"].".yml", Config::YAML))->getAll();
-		$this->getLogger()->info(TextFormat::AQUA."Done Loading Translation");
+		$this->getLogger()->info(TextFormat::AQUA.$this->getTranslation("DONE_LOADING_TRANSLATION", $this->config["language"]));
 
 		$managerClass = new \ReflectionClass(GameManager::class);
 		$geniusClass = new \ReflectionClass(GameGenius::class);
 
-		$this->getLogger()->info(TextFormat::AQUA."Loading Configuration...");
+		$this->getLogger()->info(TextFormat::AQUA.$this->getTranslation("LOADING_CONFIG"));
 		foreach($this->config as $key => $value){
 
 			if($managerClass->hasProperty($key)){
 				$managerClass->setStaticPropertyValue($key, $value);
-				$this->getLogger()->info("Config ".$key." found in GameManager class!");
+				$this->getLogger()->info($this->getTranslation("FOUND_CONFIG", $key, "GameManager"));
 			}
 
 			if($geniusClass->hasProperty($key)){
 				$geniusClass->setStaticPropertyValue($key, $value);
-				$this->getLogger()->info("Config ".$key." found in GameGenius class!");
+				$this->getLogger()->info($this->getTranslation("FOUND_CONFIG", $key, "GameGenius"));
 			}
 		}
-		$this->getLogger()->info(TextFormat::AQUA."Done Loading Configuration.");
+		$this->getLogger()->info(TextFormat::AQUA.$this->getTranslation("DONE_LOADING_CONFIG"));
+
+		if(!isset($this->config["UPDATE_CHECK"])){
+			$this->config["UPDATE_CHECK"] = true;
+		}
+
+		if($this->config["UPDATE_CHECK"]){
+			$recentVersion = yaml_parse(Utils::getURL("https://raw.githubusercontent.com/HelloWorld017/ZombieGame/master/plugin.yml"))["version"];
+
+			if($recentVersion !== $this->getDescription()->getVersion()){
+				$this->getLogger()->info(TextFormat::RED.$this->getTranslation("VERSION_DIFFER"));
+			}else{
+				$this->getLogger()->info(TextFormat::AQUA.$this->getTranslation("RECENT_VERSION"));
+			}
+		}
 
 		$this->getServer()->getPluginManager()->registerEvents($this, $this);
-		$this->getLogger()->info(TextFormat::AQUA."Zombie Game has been loaded!");
+		$this->getLogger()->info(TextFormat::AQUA.$this->getTranslation("DONE_LOADING_GAME"));
 		$this->getServer()->getScheduler()->scheduleRepeatingTask(new GameTickTask($this), 1);
 		$this->getServer()->getScheduler()->scheduleRepeatingTask(new SendPopupTask($this), 1);
 	}
@@ -352,17 +372,24 @@ class GameGenius extends PluginBase implements Listener{
 
 	public function onGameStart(GameStartEvent $event){
 		if(!isset($this->config["spawnpos"])){
-			$this->getLogger()->error("Please enter spawnpos first!");
+			$this->getLogger()->error(TextFormat::RED.$this->getTranslation("SPAWNPOS_FIRST"));
 			$this->getServer()->getPluginManager()->disablePlugin($this);
-		}else{
-			$vector3 = new Vector3($this->config["spawnpos"]["x"], $this->config["spawnpos"]["y"], $this->config["spawnpos"]["z"]);
-			foreach($this->games[$event->getGameId()]->playerData as $playerName => $playerData){
-				if($playerData["type"] === GameManager::HUMAN){
-					$playerData["player"]->sendMessage(TextFormat::LIGHT_PURPLE.TextFormat::UNDERLINE.$this->getTranslation("ARE_INITIAL_HUMAN"));
-				}
-				$this->giveItemAndEffect($playerData["player"]);
-				$playerData["player"]->teleport($vector3);
+			return;
+		}
+
+		if(!isset($this->config["resetpos"])){
+			$this->getLogger()->error(TextFormat::RED.$this->getTranslation("RESETPOS_FIRST"));
+			$this->getServer()->getPluginManager()->disablePlugin($this);
+			return;
+		}
+
+		$vector3 = new Vector3($this->config["spawnpos"]["x"], $this->config["spawnpos"]["y"], $this->config["spawnpos"]["z"]);
+		foreach($this->games[$event->getGameId()]->playerData as $playerName => $playerData){
+			if($playerData["type"] === GameManager::HUMAN){
+				$playerData["player"]->sendMessage(TextFormat::LIGHT_PURPLE.TextFormat::UNDERLINE.$this->getTranslation("ARE_INITIAL_HUMAN"));
 			}
+			$this->giveItemAndEffect($playerData["player"]);
+			$playerData["player"]->teleport($vector3);
 		}
 	}
 
@@ -502,9 +529,9 @@ class GameGenius extends PluginBase implements Listener{
 		$popupText = "";
 
 		if($gameId === "NONE"){
-			$popupText = TextFormat::BOLD.TextFormat::GREEN.$this->getTranslation("POPUP_WAITING_PLAYERS", $this->notInGamePlayerCount, GameGenius::$NEED_PLAYERS)."\n";
+			$popupText = TextFormat::BOLD.TextFormat::GREEN.$this->getTranslation("POPUP_WAITING_PLAYERS", $this->notInGamePlayerCount, GameGenius::$NEED_PLAYERS);
 			if(GameGenius::$IS_FLUSH){
-				$popupText .= $this->getTranslation("POPUP_WAITING_ISFLUSH");
+				$popupText .= "\n".$this->getTranslation("POPUP_WAITING_ISFLUSH");
 			}
 		}else{
 			$popupText .= TextFormat::GREEN;
@@ -583,7 +610,12 @@ class GameGenius extends PluginBase implements Listener{
 
 	public function getTranslation($translationKey, ...$args){
 		if(!isset($this->translation[$translationKey])){
-			return "UNDEFINED_TRANSLATION";
+			if(!$this->setEnglishTranslation($translationKey)){
+				$undefinedTranslation = $this->getUndefinedTranslation($translationKey, $args);
+
+				$this->getLogger($undefinedTranslation);
+				return $undefinedTranslation;
+			}
 		}
 
 		$translationText = $this->translation[$translationKey];
@@ -593,5 +625,35 @@ class GameGenius extends PluginBase implements Listener{
 		}
 
 		return $translationText;
+	}
+
+	public function setEnglishTranslation($translationKey){
+		if(file_exists($this->getDataFolder()."translation_en.yml")){
+			$engTranslation = (new Config($this->getDataFolder()."translation_en.yml", Config::YAML))->getAll();
+			if(isset($engTranslation[$translationKey])){
+				$this->translation[$translationKey] = $engTranslation[$translationKey];
+				return true;
+			}
+		}
+		return false;
+	}
+
+	public function getUndefinedTranslation($translationKey, array $args){
+
+		$argText = "";
+
+		foreach($args as $value){
+			$argText .= ", $value";
+		}
+
+		if($argText !== "") {
+			$argText = substr($argText, 2);
+		}
+
+		if(isset($this->translation["UNDEFINED_TRANSLATION"])){
+			return $this->translation["UNDEFINED_TRANSLATION"]." : $translationKey, $argText";
+		}
+
+		return "Undefined Translation : $translationKey, $argText";
 	}
 }
