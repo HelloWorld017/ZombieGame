@@ -58,4 +58,5 @@ RESETPOS_FIRST: Please set resetpos first!
 VERSION_DIFFER: Version may differ from the recent version! Please update!
 RECENT_VERSION: "Your version is up-to-date :)"
 UNDEFINED_TRANSLATION: "Undefined Translation : "
+CHECK_VERSION_FAILED: Failed to checking version!
 ...

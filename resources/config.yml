@@ -9,7 +9,8 @@ INGAME_REST_TERM: 600
 ROUND_TERM: 2400
 GIVE_JUMP_SPELL: true
 IS_KILL_TOUCH: false
-#When you turn on this option, when NEED_PLAYERS < user count < NEED_PLAYERS * 2, everyone starts game together. 이 옵션을 사용하면 최초좀비 수가 안 맞을 수 있으니 조심하세요!
+#When you turn on this option, when NEED_PLAYERS < user count < NEED_PLAYERS * 2, everyone starts game together. It can make imbalance of rate of zombies and humans.
 IS_FLUSH: false
 UPDATE_CHECK: true
+NU_EFFECT: true
 ...

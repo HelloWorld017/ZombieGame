@@ -39,7 +39,10 @@ use pocketmine\event\player\PlayerJoinEvent;
 use pocketmine\event\player\PlayerQuitEvent;
 use pocketmine\event\player\PlayerRespawnEvent;
 use pocketmine\item\Item;
+use pocketmine\level\Location;
+use pocketmine\level\particle\DustParticle;
 use pocketmine\level\particle\HeartParticle;
+use pocketmine\level\Position;
 use pocketmine\level\sound\DoorSound;
 use pocketmine\math\Vector3;
 use pocketmine\Player;
@@ -127,12 +130,16 @@ class GameGenius extends PluginBase implements Listener{
 		}
 
 		if($this->config["UPDATE_CHECK"]){
-			$recentVersion = yaml_parse(Utils::getURL("https://raw.githubusercontent.com/HelloWorld017/ZombieGame/master/plugin.yml"))["version"];
+			try {
+				$recentVersion = yaml_parse(Utils::getURL("https://raw.githubusercontent.com/HelloWorld017/ZombieGame/master/plugin.yml"))["version"];
 
-			if($recentVersion !== $this->getDescription()->getVersion()){
-				$this->getLogger()->info(TextFormat::RED.$this->getTranslation("VERSION_DIFFER"));
-			}else{
-				$this->getLogger()->info(TextFormat::AQUA.$this->getTranslation("RECENT_VERSION"));
+				if ($recentVersion !== $this->getDescription()->getVersion()) {
+					$this->getLogger()->info(TextFormat::RED . $this->getTranslation("VERSION_DIFFER"));
+				} else {
+					$this->getLogger()->info(TextFormat::AQUA . $this->getTranslation("RECENT_VERSION"));
+				}
+			}catch(\Exception $e){
+				$this->getLogger()->info(TextFormat::RED . $this->getTranslation("CHECK_VERSION_FAILED"));
 			}
 		}
 
@@ -314,7 +321,7 @@ class GameGenius extends PluginBase implements Listener{
 
 	public function onPlayerRespawned(PlayerRespawnEvent $event){
 		if(isset($this->players[$event->getPlayer()->getName()]) && $this->players[$event->getPlayer()->getName()] !== "NONE"){
-			$event->getPlayer()->teleport(new Vector3($this->config["spawnpos"]["x"], $this->config["spawnpos"]["y"], $this->config["spawnpos"]["z"]));
+			$event->setRespawnPosition(new Position($this->config["spawnpos"]["x"], $this->config["spawnpos"]["y"], $this->config["spawnpos"]["z"], $event->getPlayer()->getLevel()));
 		}
 	}
 
@@ -472,18 +479,32 @@ class GameGenius extends PluginBase implements Listener{
 				case GameManager::RETURNTYPE_TOUCH_SUCCEED:
 					$this->notifyTipForPlayers($damagerGameId, TextFormat::DARK_PURPLE .$this->getTranslation("TOUCH_MESSAGE" ,$damager->getName(), $entity->getName()));
 					$this->notifyForPlayers($damagerGameId, TextFormat::DARK_PURPLE .$this->getTranslation("TOUCH_MESSAGE" ,$damager->getName(), $entity->getName()));
-					$damager->getLevel()->addSound(new DoorSound($damager->getLocation()));
-					for ($i = 0; $i < 30; $i++) {
-						$damager->getLevel()->addParticle(new HeartParticle($damager->getLocation()->add(mt_rand(-1, 1), mt_rand(-1, 1), mt_rand(-1, 1))));
-					}
-					for ($i = 0; $i < 30; $i++) {
-						$damager->getLevel()->addParticle(new HeartParticle($entity->getLocation()->add(mt_rand(-1, 1), mt_rand(-1, 1), mt_rand(-1, 1))));
-					}
+					$this->createTouchEffect($entity->getLocation(), $entity->getEyeHeight(), $damager->getLocation(), $damager->getEyeHeight());
 					break;
 			}
 			return $returnVal;
 		}
 		return false;
+	}
+
+	public function createTouchEffect(Location $position, $entityHeight, Location $damagerPosition, $damagerHeight){
+		if(isset($this->config["NU_EFFECT"]) && !$this->config["NU_EFFECT"]) {
+			$position->getLevel()->addSound(new DoorSound($position));
+			for ($i = 0; $i < 50; $i++) {
+				$position->getLevel()->addParticle(new HeartParticle($position->add(mt_rand(-1, 1), mt_rand(-1, 1) + $entityHeight, mt_rand(-1, 1))));
+			}
+			for ($i = 0; $i < 50; $i++) {
+				$damagerPosition->getLevel()->addParticle(new HeartParticle($damagerPosition->add(mt_rand(-1, 1), mt_rand(-1, 1) + $damagerHeight, mt_rand(-1, 1))));
+			}
+		}else{
+			$position->getLevel()->addSound(new DoorSound($position));
+			for ($i = 0; $i < 50; $i++) {
+				$position->getLevel()->addParticle(new DustParticle($position->add((mt_rand(-1, 1) / 2), (mt_rand(-1, 1) / 2) + $entityHeight, (mt_rand(-1, 1) / 2)), 153, 51, 255));
+			}
+			for ($i = 0; $i < 50; $i++) {
+				$damagerPosition->getLevel()->addParticle(new DustParticle($damagerPosition->add((mt_rand(-1, 1) / 2), (mt_rand(-1, 1) / 2) + $damagerHeight, (mt_rand(-1, 1) / 2)), 153, 51, 255));
+			}
+		}
 	}
 
 	public function notifyForPlayers($gameId, $notification){
