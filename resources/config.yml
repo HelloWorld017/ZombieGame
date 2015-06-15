@@ -13,4 +13,5 @@ IS_KILL_TOUCH: false
 IS_FLUSH: false
 UPDATE_CHECK: true
 NU_EFFECT: true
+IS_DAMAGE_ENABLED: false
 ...

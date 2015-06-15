@@ -352,9 +352,12 @@ class GameGenius extends PluginBase implements Listener{
 			$game->tick();
 		}
 
-		foreach($this->players as $playerName => $playerGameId){
-			if($playerGameId !== "NONE"){
-				$playerInstance = $this->getServer()->getPlayerExact($playerName);
+		foreach($this->getServer()->getOnlinePlayers() as $playerInstance){
+			if(!isset($this->players[$playerInstance->getName()])){
+				continue;
+			}
+
+			if($this->players[$playerInstance->getName()] !== "NONE"){
 				if($playerInstance->getHealth() >= 19){
 					$playerInstance->setHealth(19);
 				}
@@ -419,9 +422,9 @@ class GameGenius extends PluginBase implements Listener{
 
 		$entityGameId = $this->players[$event->getEntity()->getName()];
 
-		if($entityGameId !== "NONE"){
+		if($entityGameId !== "NONE" && !$this->config["IS_DAMAGE_ENABLED"]){
 			$event->setCancelled(true);
-		}else{
+		}elseif($entityGameId === "NONE"){
 			return true;
 		}
 
@@ -432,6 +435,8 @@ class GameGenius extends PluginBase implements Listener{
 		if(!($event->getDamager() instanceof Player)){
 			return true;
 		}
+
+		$event->setCancelled(true);
 
 		if(!GameGenius::$IS_KILL_TOUCH){
 			$this->touch($event->getDamager(), $event->getEntity());
@@ -581,9 +586,13 @@ class GameGenius extends PluginBase implements Listener{
 		$this->notInGamePlayerCount = 0;
 		$onlineNotInGamePlayers = array();
 
-		foreach($this->players as $playerName => $playerGameId){
-			if($playerGameId === "NONE"){
-				array_push($onlineNotInGamePlayers, $playerName);
+		foreach($this->getServer()->getOnlinePlayers() as $playerInstance){
+			if(!isset($this->players[$playerInstance->getName()])){
+				continue;
+			}
+
+			if($this->players[$playerInstance->getName()] === "NONE"){
+				array_push($onlineNotInGamePlayers, $playerInstance);
 				$this->notInGamePlayerCount++;
 			}
 		}
@@ -594,14 +603,13 @@ class GameGenius extends PluginBase implements Listener{
 
 			if(GameGenius::$IS_FLUSH){
 				for ($i = 0; $i < count($onlineNotInGamePlayers); $i++) {
-					$player = $this->getServer()->getPlayerExact($onlineNotInGamePlayers[$i]);
-					$this->players[$onlineNotInGamePlayers[$i]] = $gameid;
+					$this->players[$onlineNotInGamePlayers[$i]->getName()] = $gameid;
 					array_push($gamers, $player);
 				}
 			}else{
 				for ($i = 0; $i < GameGenius::$NEED_PLAYERS; $i++) {
-					$player = $this->getServer()->getPlayerExact($onlineNotInGamePlayers[$i]);
-					$this->players[$onlineNotInGamePlayers[$i]] = $gameid;
+					$player = $onlineNotInGamePlayers[$i];
+					$this->players[$onlineNotInGamePlayers[$i]->getName()] = $gameid;
 					array_push($gamers, $player);
 				}
 			}
