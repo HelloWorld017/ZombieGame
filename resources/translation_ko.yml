@@ -11,6 +11,7 @@ NO_TOUCH_INFECTION: 플레이어 %s1는 한 라운드에 한번도 터치를 안
 ARE_INITIAL_ZOMBIE: 당신은 좀비입니다.
 ARE_INITIAL_HUMAN: 당신은 인간입니다.
 POPUP_WAITING_PLAYERS: 플레이어들을 기다리는 중 (%s1/%s2)...
+POPUP_WAITING_ISFLUSH: 플레이어들이 모이지 않을 경우 기다리시면 같이 시작합니다.
 POPUP_STATUS_ROUND: 라운드 %s1
 POPUP_STATUS_ROUND_REST: 휴식 시간 (라운드 %s1)
 POPUP_STATUS_PREPARATION: 준비 중입니다...
@@ -39,4 +40,17 @@ GAME_FINISHED_HUMAN: '게임이 끝났습니다. 승자: 승점 %s2를 기록한
 TOUCH_ALREADY_TOUCHED: 이미 터치하였습니다!
 PREPARATION_OR_REST: 쉬는시간이거나 준비기간입니다!
 MEDICINE_USED: 당신은 치료제를 사용하셨습니다!
+TOUCH_MESSAGE: "%s1씨께서 %s2씨를 터치하셨습니다!"
+RESETPOS_SET: 리셋지점이 설정되었습니다!
+DONE_LOADING_TRANSLATION: 번역팩 %s1(이)가 로딩되었습니다!
+LOADING_CONFIG: 설정 로딩중...
+FOUND_CONFIG: 설정 %s1(이)가 클래스 %s2에서 발견되었습니다!
+DONE_LOADING_CONFIG: 설정이 로딩되었습니다!
+DONE_LOADING_GAME: 좀비게임이 로딩되었습니다!
+SPAWNPOS_FIRST: 스폰지점을 먼저 설정해주세요!
+RESETPOS_FIRST: 리셋지점을 먼저 설정해주세요!
+VERSION_DIFFER: 최신버젼과 현재버젼이 다릅니다! 업데이트 해주세요!
+RECENT_VERSION: "최신버젼입니다 :)"
+UNDEFINED_TRANSLATION: "존재하지 않는 번역 : "
+CHECK_VERSION_FAILED: 버전 체킹에 실패하였습니다.
 ...

@@ -34,10 +34,17 @@ class GameManager {
 	private $gameStatus = GameManager::STATUS_PREPARATION;
 	private $roundCount = 1;
 	private $plugin;
-	private $world;
 
 	const HUMAN = 0;
 	const ZOMBIE = 1;
+
+	//Setting
+	public static $INITIAL_ZOMBIE_COUNT = 2;
+	public static $ROUND_COUNT = 3;
+	public static $INFECTION_MEDICINE_TERM = 2400;
+	public static $PREPARATION_TERM = 1200;
+	public static $INGAME_REST_TERM = 600;
+	public static $ROUND_TERM = 1800;
 
 	const STATUS_PREPARATION = 0;
 	const STATUS_INGAME = 1;
@@ -49,12 +56,13 @@ class GameManager {
 	const RETURNTYPE_MEDICINE_SUCCEED = 2;
 	const RETURNTYPE_MEDICINE_INITIAL_ZOMBIE_SUCCEED = 3;
 
+
 	const RETURNTYPE_TOUCH_IN_PREPARATION_OR_REST_FAILED = 0;
 	const RETURNTYPE_TOUCH_SUCCEED = 1;
 	const RETURNTYPE_TOUCH_ALREADY_TOUCED_FAILED = 2;
 
 	private function newGame(){
-		$initialZombieNames = array_rand($this->playerData, $this->$INITIAL_ZOMBIE_COUNT);
+		$initialZombieNames = array_rand($this->playerData, GameManager::$INITIAL_ZOMBIE_COUNT);
 
 		if(is_array($initialZombieNames)){
 			foreach ($initialZombieNames as $zombie) {
@@ -74,7 +82,7 @@ class GameManager {
 		$this->plugin->getServer()->getPluginManager()->callEvent(new GameStartEvent($this->plugin, $this->gameId));
 	}
 
-	public function startGame(array $playerList, $gameId, GameGenius &$plugin, WorldManager &$world){
+	public function startGame(array $playerList, $gameId, GameGenius &$plugin){
 		$this->gameId = $gameId;
 		$this->playerData = array();
 
@@ -84,13 +92,27 @@ class GameManager {
 				"player" => $player,
 				"score" => 0,
 				"touched" => array(),
-				"roundtouch" => 0
+				"roundtouch" => 0,
+				"medicine" => false
 			);
 		}
 
 		$this->plugin = $plugin;
-		$this->world = $world;
 		$this->newGame();
+	}
+
+	public function canTouch($touchingPlayerName, $touchedPlayerName){
+		if($this->gameStatus !== GameManager::STATUS_INGAME){
+			return GameManager::RETURNTYPE_TOUCH_IN_PREPARATION_OR_REST_FAILED;
+		}
+
+		foreach($this->playerData[$touchedPlayerName]["touched"] as $pastToucher){
+			if($pastToucher === $touchingPlayerName){
+				return GameManager::RETURNTYPE_TOUCH_ALREADY_TOUCED_FAILED;
+			}
+		}
+
+		return GameManager::RETURNTYPE_TOUCH_SUCCEED;
 	}
 
 	public function touch($touchingPlayerName, $touchedPlayerName){
@@ -107,8 +129,8 @@ class GameManager {
 		switch($this->playerData[$touchingPlayerName]["type"]){
 			case GameManager::HUMAN:
 				if($this->isHuman($touchedPlayerName)){
-					$this->playerData[$touchedPlayerName["score"]]++;
-					$this->playerData[$touchedPlayerName["score"]]++;
+					$this->playerData[$touchedPlayerName]["score"]++;
+					$this->playerData[$touchedPlayerName]["score"]++;
 				}else{
 					$this->infectZombie($touchingPlayerName, false, false);
 				}
@@ -150,7 +172,7 @@ class GameManager {
 	public function useMedicine($usingPlayerName){
 		if($this->isHuman($usingPlayerName)){
 			return GameManager::RETURNTYPE_MEDICINE_NOT_ZOMBIE_SUCCEED;
-		}elseif($this->playerData[$usingPlayerName]["infection_time"] + $this->world->INFECTION_MEDICINE_TERM < $this->innerTick){
+		}elseif($this->playerData[$usingPlayerName]["infection_time"] + GameManager::$INFECTION_MEDICINE_TERM < $this->innerTick){
 			return GameManager::RETURNTYPE_MEDICINE_OVER_TIME_SUCCEED;
 		}elseif(isset($this->playerData[$usingPlayerName]["initial_zombie"]) && $this->playerData[$usingPlayerName]["initial_zombie"]){
 			return GameManager::RETURNTYPE_MEDICINE_INITIAL_ZOMBIE_SUCCEED;
@@ -158,6 +180,7 @@ class GameManager {
 			$this->playerData[$usingPlayerName]["type"] = GameManager::HUMAN;
 			unset($this->playerData[$usingPlayerName]["infection_time"]);
 			unset($this->playerData[$usingPlayerName]["initial_zombie"]);
+			$this->playerData[$usingPlayerName]["medicine"] = true;
 			return GameManager::RETURNTYPE_MEDICINE_SUCCEED;
 		}
 
@@ -171,21 +194,21 @@ class GameManager {
 		}*/
 		switch($this->gameStatus){
 			case GameManager::STATUS_PREPARATION:
-				if($this->roundTick >= $this->world->PREPARATION_TERM){
+				if($this->roundTick >= GameManager::$PREPARATION_TERM){
 					$this->gameStatus = GameManager::STATUS_INGAME;
 					$this->plugin->getServer()->getPluginManager()->callEvent(new GameRoundStartEvent($this->plugin, $this->gameId));
 					$this->roundTick = 0;
 				}
 				break;
 			case GameManager::STATUS_INGAME_REST:
-				if($this->roundTick >= $this->world->INGAME_REST_TERM){
+				if($this->roundTick >= GameManager::$INGAME_REST_TERM){
 					$this->gameStatus = GameManager::STATUS_INGAME;
 					$this->plugin->getServer()->getPluginManager()->callEvent(new GameRoundStartEvent($this->plugin, $this->gameId));
 					$this->roundTick = 0;
 				}
 				break;
 			case GameManager::STATUS_INGAME:
-				if($this->roundTick >= $this->world->ROUND_TERM){
+				if($this->roundTick >= GameManager::$ROUND_TERM){
 					$this->roundCount++;
 
 					$zombieCount = 0;
@@ -211,7 +234,7 @@ class GameManager {
 						$this->finishGame();
 					}
 
-					if($this->roundCount > $this->world->ROUND_COUNT){
+					if($this->roundCount > GameManager::$ROUND_COUNT){
 						$this->finishGame();
 					}
 
